@@ -40,8 +40,12 @@ class Settings:
     # Paths
     runs_dir: str = os.environ.get("RUNS_DIR", str(PKG_ROOT / "runs"))
     allowed_hosts_file: str = os.environ.get("ALLOWED_HOSTS_FILE", str(PKG_ROOT / "config" / "allowed_hosts.txt"))
-    # SSH wrapper: command template; {host} and {path} placeholders
+    # SSH: OpenSSH 접속 정보 (비밀값은 경로만 보관, 그래프 상태에는 넣지 않음)
     ssh_wrapper_cmd: str = os.environ.get("SSH_WRAPPER_CMD", "")
+    ssh_user: str = os.environ.get("SSH_USER", "")
+    ssh_port: int = int(os.environ.get("SSH_PORT", "22") or "22")
+    ssh_identity_file: str = os.environ.get("SSH_IDENTITY_FILE", "")
+    ssh_strict_host_key: str = os.environ.get("SSH_STRICT_HOST_KEY", "accept-new")
     # Plan defaults
     bucket_sec: int = 5
     plan_ramp_scale: float = 1.0

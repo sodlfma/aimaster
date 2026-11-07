@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 import pandas as pd
@@ -9,16 +10,43 @@ from config.settings import get_settings, update_settings
 from graph.nodes.diagnose import new_run_id
 from model.schemas import ParsedConfig, TargetInfo
 from tools.ssh_wrapper import (
-    DEFAULT_SSH_WRAPPER_CMD,
+    DEFAULT_SSH_PORT,
+    DEFAULT_STRICT_HOST_KEY,
     DEFAULT_TIMEOUT_SEC,
     RemoteConfigError,
-    effective_ssh_wrapper_cmd,
+    build_ssh_argv,
     fetch_from_homes,
 )
 from . import driver
 
+STRICT_HOST_KEY_LABELS = {
+    "accept-new": "최초 접속 허용 (accept-new, 권장)",
+    "yes": "엄격 — known_hosts에 있어야 함",
+    "no": "검사 안 함 (비권장)",
+}
+
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
 INPUT_KEYS = ("web_mon_cron.env", "httpd-mpm.conf", "tomcat.env")
+
+
+def _persist_uploaded_identity(uploaded) -> str:
+    dest_dir = Path(get_settings().runs_dir) / ".ssh-keys"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "uploaded_identity"
+    dest.write_bytes(uploaded.getvalue())
+    dest.chmod(0o600)
+    return str(dest)
+
+
+def _show_ssh_error(exc: Exception) -> None:
+    msg = str(exc)
+    if "# hint:" in msg:
+        err, _, hint = msg.partition("# hint:")
+        err = err.replace("# error:", "").strip() or "SSH 수집 실패"
+        st.error(err)
+        st.warning(hint.strip())
+    else:
+        st.error(msg)
 
 
 def _sample_raw(host: str, apache_path: str, tomcat_path: str) -> dict[str, str]:
@@ -67,31 +95,91 @@ def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str,
 
 def render(graph) -> None:
     st.header("1. 인프라 진단 및 4단계 부하 플랜 산출 (SC-001)")
-    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. 호스트와 경로만 주면 SSH 래퍼가 서버에서 읽어 옵니다.")
+    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. SSH 사용자·키로 서버에서 읽어 옵니다. 비밀번호 인증은 지원하지 않습니다.")
 
+    s = get_settings()
     col1, col2, col3 = st.columns(3)
     with col1:
-        host = st.text_input("대상 호스트", placeholder="was01.corp.local", key="diag_host")
+        host = st.text_input("대상 호스트", placeholder="was01.corp.local 또는 ec2-user@10.0.0.1", key="diag_host")
     with col2:
         apache_path = st.text_input("Apache 홈 또는 httpd-mpm.conf 경로", value="/sw/apache", key="diag_apache")
     with col3:
         tomcat_path = st.text_input("Tomcat 홈 또는 tomcat.env 경로", value="/sw/tomcat", key="diag_tomcat")
 
     if "diag_wrapper" not in st.session_state:
-        st.session_state["diag_wrapper"] = effective_ssh_wrapper_cmd() or DEFAULT_SSH_WRAPPER_CMD
-    with st.expander("SSH 래퍼 설정"):
+        st.session_state["diag_wrapper"] = s.ssh_wrapper_cmd or ""
+    if "diag_ssh_user" not in st.session_state:
+        st.session_state["diag_ssh_user"] = s.ssh_user
+    if "diag_ssh_identity" not in st.session_state:
+        st.session_state["diag_ssh_identity"] = s.ssh_identity_file
+    if "diag_ssh_strict" not in st.session_state:
+        st.session_state["diag_ssh_strict"] = (
+            s.ssh_strict_host_key if s.ssh_strict_host_key in STRICT_HOST_KEY_LABELS else DEFAULT_STRICT_HOST_KEY
+        )
+    if "diag_ssh_port" not in st.session_state:
+        st.session_state["diag_ssh_port"] = int(s.ssh_port or DEFAULT_SSH_PORT)
+    if "diag_ssh_timeout" not in st.session_state:
+        st.session_state["diag_ssh_timeout"] = DEFAULT_TIMEOUT_SEC
+
+    with st.expander("SSH 접속 (사용자 · 키 · 호스트 키)", expanded=True):
         st.markdown(
-            "사내 SSH 쉘 실행 프로그램을 `subprocess`로 호출합니다. "
-            "`{host}`와 `{path}`가 치환되며, 디렉터리만 주면 사내 표준 상대경로 "
-            "`shl/tomcat.env`, `conf/httpd-mpm.conf` 를 붙입니다."
+            "기본은 OpenSSH를 비대화형(`BatchMode`)으로 호출합니다. "
+            "비밀번호를 넣을 칸은 없습니다 — 개인키 또는 이미 로드된 `ssh-agent`를 사용하세요. "
+            "`Host key verification failed` 는 처음 보는 서버에서 흔하며, 아래 호스트 키 정책을 "
+            "**최초 접속 허용**으로 두면 등록됩니다."
         )
+        u1, u2, u3 = st.columns(3)
+        with u1:
+            ssh_user = st.text_input(
+                "SSH 사용자",
+                key="diag_ssh_user",
+                placeholder="ec2-user / wasadm",
+                help="환경변수 SSH_USER. 비우면 이 프로세스를 실행 중인 OS 사용자, 또는 호스트 칸의 user@host",
+            )
+        with u2:
+            ssh_port = st.number_input("SSH 포트", min_value=1, max_value=65535, step=1, key="diag_ssh_port")
+        with u3:
+            strict_choice = st.selectbox(
+                "호스트 키 정책",
+                options=list(STRICT_HOST_KEY_LABELS.keys()),
+                format_func=lambda k: STRICT_HOST_KEY_LABELS[k],
+                key="diag_ssh_strict",
+                help="accept-new: 처음 보는 호스트는 known_hosts에 추가하고, 키가 바뀐 호스트는 거부합니다.",
+            )
+        ssh_identity = st.text_input(
+            "개인키 파일 경로",
+            key="diag_ssh_identity",
+            placeholder="~/.ssh/id_ed25519 또는 /home/ec2-user/.ssh/key.pem",
+            help="환경변수 SSH_IDENTITY_FILE. 비우면 ssh-agent / 기본 키를 사용합니다.",
+        )
+        uploaded = st.file_uploader("개인키 업로드 (선택, 이 서버의 임시 파일로 저장)", key="diag_ssh_key_upload")
+        identity_path = ssh_identity.strip()
+        if uploaded is not None:
+            identity_path = _persist_uploaded_identity(uploaded)
+            st.caption(f"업로드한 키를 `{identity_path}` 에 저장했습니다 (권한 600).")
         wrapper = st.text_input(
-            "SSH 래퍼 명령 템플릿",
+            "사내 SSH 래퍼 명령 템플릿 (비우면 OpenSSH 직접 호출)",
             key="diag_wrapper",
-            help="환경변수 SSH_WRAPPER_CMD 또는 예: /opt/tools/sshrun {host} cat {path}",
+            help="고급: SSH_WRAPPER_CMD. 예: /opt/tools/sshrun {host} cat {path}  — {user} {port} {identity} 도 치환됩니다.",
         )
-        timeout = st.number_input("수집 타임아웃(초)", min_value=5, max_value=120, value=DEFAULT_TIMEOUT_SEC, step=5)
-        update_settings(ssh_wrapper_cmd=wrapper.strip())
+        timeout = st.number_input("수집 타임아웃(초)", min_value=5, max_value=120, step=5, key="diag_ssh_timeout")
+        update_settings(
+            ssh_wrapper_cmd=wrapper.strip(),
+            ssh_user=ssh_user.strip(),
+            ssh_port=int(ssh_port),
+            ssh_identity_file=identity_path,
+            ssh_strict_host_key=strict_choice,
+        )
+        try:
+            preview = build_ssh_argv(
+                (host or "").strip() or "example-host",
+                "/sw/tomcat/shl/tomcat.env",
+                template=wrapper,
+                must_exist_identity=False,
+            )
+            st.caption("실행 명령 미리보기: `" + " ".join(shlex.quote(p) for p in preview) + "`")
+        except Exception as exc:
+            st.caption(f"명령 미리보기 불가: {exc}")
 
     run_ssh, run_mock = st.columns(2)
     ssh_clicked = run_ssh.button("SSH로 설정 수집 및 진단", type="primary", use_container_width=True)
@@ -123,7 +211,7 @@ def render(graph) -> None:
                     target=target,
                 )
             except (RemoteConfigError, ValueError) as exc:
-                st.error(str(exc))
+                _show_ssh_error(exc)
                 if isinstance(exc, RemoteConfigError) and exc.configs and exc.configs.errors:
                     with st.expander("수집 실패 상세"):
                         for path, err in exc.configs.errors.items():
