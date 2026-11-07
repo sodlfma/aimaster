@@ -178,6 +178,32 @@ def test_preflight_blocks_disallowed_host(raw_inputs, no_llm):
     assert snap.values.get("run_result") is None
 
 
+def test_preflight_allows_diagnosed_host(raw_inputs, no_llm, monkeypatch):
+    from model.schemas import TargetInfo
+
+    class _Conn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr("tools.preflight.socket.create_connection", lambda *a, **k: _Conn())
+    graph = build_graph(memory_checkpointer())
+    cfg = {"configurable": {"thread_id": "t-diag-allow"}}
+    _drive(graph, cfg, {
+        "raw_inputs": raw_inputs, "llm_enabled": False, "options": {"dry_run": False},
+        "target_info": TargetInfo(host="ec2-user@3.35.11.139"),
+    })
+    snap, _ = _drive(graph, cfg, Command(resume={"scenario_input": {"kind": "url", "payload": "http://3.35.11.139:8080/api"}}))
+    snap, _ = _drive(graph, cfg, Command(resume={"scenario_spec": snap.values["scenario_spec"].model_dump()}))
+    snap, _ = _drive(graph, cfg, Command(resume={"run_mode": "local"}))
+    assert snap.next == ()
+    allowed = [c for c in snap.values["preflight"] if c.name == "allowed_host"]
+    assert allowed and allowed[0].ok
+    assert snap.values.get("run_result") is not None
+
+
 def test_sqlite_checkpointer_survives_graph_rebuild(raw_inputs, no_llm, tmp_path):
     db = tmp_path / "ckpt.sqlite"
     cfg = {"configurable": {"thread_id": "t-persist"}}

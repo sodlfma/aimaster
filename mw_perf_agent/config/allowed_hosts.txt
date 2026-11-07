@@ -1,4 +1,5 @@
 # One host per line. Glob patterns are allowed (e.g. *.dev.example.com).
 # Empty file (only comments) means: allow nothing except localhost/127.0.0.1.
+# The host diagnosed in the current SC-001 run is also allowed without listing it here.
 localhost
 127.0.0.1
