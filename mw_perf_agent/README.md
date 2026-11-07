@@ -27,9 +27,13 @@ JMeter 없이도 번들 생성 + 외부 실행 결과(JTL) 업로드 분석(`bun
 | `JMETER_DOCKER_IMAGE`, `JMETER_REMOTE_HOSTS` | Docker / 분산(-R) 모드 | `justb4/jmeter:latest` / 없음 |
 | `RUNS_DIR` | 산출물·체크포인트 저장 위치 | `mw_perf_agent/runs` |
 | `ALLOWED_HOSTS_FILE` | 부하 허용 대상 목록 (preflight 차단 기준) | `config/allowed_hosts.txt` |
-| `SSH_WRAPPER_CMD` | SC-001 원격 수집용 읽기 전용 래퍼 (`{host}` `{path}`) | `ssh -o BatchMode=yes … {host} cat {path}` |
+| `SSH_WRAPPER_CMD` | SC-001 원격 수집용 사내 래퍼 (`{host}` `{path}`, 선택 `{user}` `{port}` `{identity}`). 비우면 OpenSSH 직접 호출 | (없음 → `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new …`) |
+| `SSH_USER` / `SSH_PORT` | OpenSSH 사용자·포트 | 프로세스 OS 사용자 / `22` |
+| `SSH_PASSWORD` | SSH 로그인 비밀번호 (명령줄이 아니라 `SSH_ASKPASS`로 전달) | (없음) |
+| `SSH_IDENTITY_FILE` | 개인키 경로. 비밀번호와 함께 쓸 수 있음 | (없음) |
+| `SSH_STRICT_HOST_KEY` | 호스트 키 정책 `accept-new` / `yes` / `no` | `accept-new` (처음 보는 호스트는 등록) |
 
-모든 값은 사이드바(및 SC-001의 SSH 래퍼 설정)에서도 바꿀 수 있고, 프로세스 수준 `Settings` 싱글톤에만 보관됩니다(그래프 상태/체크포인트에 비밀값이 들어가지 않음). ① 진단 탭은 설정 원문을 붙여넣지 않고 호스트·Apache/Tomcat 경로로 SSH 수집합니다.
+모든 값은 사이드바(및 SC-001의 SSH 접속 설정)에서도 바꿀 수 있고, 프로세스 수준 `Settings` 싱글톤에만 보관됩니다(그래프 상태/체크포인트에 비밀값이 들어가지 않음). ① 진단 탭은 설정 원문을 붙여넣지 않고 호스트·SSH 사용자·비밀번호 또는 키·Apache/Tomcat 경로로 수집합니다. `Host key verification failed` 는 기본값 `accept-new` 로 최초 접속을 허용하면 해소됩니다.
 
 ## 그래프 개요
 
