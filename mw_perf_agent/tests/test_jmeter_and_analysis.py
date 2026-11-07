@@ -9,8 +9,8 @@ import pandas as pd
 from analysis.anomalies import detect_anomalies
 from analysis.gc_parser import parse_gc_text
 from analysis.stats import aggregate_buckets, step_summary
-from jmeter.jtl import load_jtl, step_from_thread_name
-from jmeter.render import render_jmx, render_properties, scenario_from_url
+from jmeter.jtl import failure_snapshot, load_jtl, step_from_thread_name
+from jmeter.render import render_jmx, render_properties, scenario_from_url, split_path_query
 from jmeter.validate import validate_jmx
 from model.load_plan import generate_load_plan
 from model.schemas import ScenarioInput, Thresholds
@@ -30,6 +30,15 @@ def test_scenario_from_url_parses_everything():
     assert req.method == "POST" and req.path == "/v1/items?q=1"
     assert req.headers["Content-Type"] == "application/json"
     assert req.assertions[0].expected == "200"
+
+
+def test_scenario_from_url_drops_content_type_on_get():
+    spec = scenario_from_url(ScenarioInput(
+        kind="url", payload="http://3.35.11.139:8080/api/perf/db-delay?holdMs=300", method="GET",
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+    ))
+    assert "Content-Type" not in spec.requests[0].headers
+    assert spec.requests[0].headers["Accept"] == "application/json"
 
 
 def test_render_jmx_is_well_formed_with_4_serial_threadgroups(tmp_path):
@@ -118,3 +127,46 @@ def test_gc_parser_jstat_and_log():
     df2 = parse_gc_text(log)
     assert len(df2) == 2 and df2["pause_ms"].max() == 812.0
     assert (df2["kind"] == "full").any()
+
+
+def test_split_query_into_http_arguments():
+    spec = scenario_from_url(ScenarioInput(
+        kind="url", payload="http://3.35.11.139:8080/api/perf/db-delay?holdMs=300", method="GET",
+    ))
+    assert spec.requests[0].path == "/api/perf/db-delay?holdMs=300"
+    assert split_path_query(spec.requests[0].path) == ("/api/perf/db-delay", [("holdMs", "300")])
+    xml = render_jmx(spec, _plan(), "runq")
+    root = ET.fromstring(xml)
+    path = root.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.path']").text
+    assert path == "/api/perf/db-delay"
+    names = [e.find("stringProp[@name='Argument.name']").text for e in root.findall(".//elementProp[@elementType='HTTPArgument']")]
+    values = [e.find("stringProp[@name='Argument.value']").text for e in root.findall(".//elementProp[@elementType='HTTPArgument']")]
+    assert "holdMs" in names and "300" in values
+
+
+def test_failure_snapshot_connect_timeout(tmp_path):
+    p = tmp_path / "result.jtl"
+    p.write_text(
+        "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage\n"
+        "1,5000,GET /api,Non HTTP response code: java.net.ConnectException,"
+        "Non HTTP response message: Connection timed out,Step 1 (Normal) 1-1,text,false,Connection timed out\n",
+        encoding="utf-8",
+    )
+    snap = failure_snapshot(p)
+    assert "ConnectException" in snap["hint"] or "Non HTTP" in snap["hint"]
+    assert "localhost" in snap["hint"]
+    assert snap["samples"]
+
+
+def test_docker_uses_host_network_for_localhost(tmp_path, isolated_settings):
+    from model.schemas import BundlePaths
+    from tools.jmeter_runner import build_command
+
+    bundle = BundlePaths(
+        jmx=str(tmp_path / "plan.jmx"), properties=str(tmp_path / "user.properties"),
+        run_sh=str(tmp_path / "run.sh"), plan_json=str(tmp_path / "plan.json"),
+        readme=str(tmp_path / "README.md"),
+    )
+    cmd = build_command(tmp_path, bundle, "docker", isolated_settings, {"target.host": "localhost"})
+    assert cmd[:3] == ["docker", "run", "--rm"]
+    assert "--network" in cmd and "host" in cmd

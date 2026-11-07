@@ -35,7 +35,7 @@ JMeter 없이도 번들 생성 + 외부 실행 결과(JTL) 업로드 분석(`bun
 
 모든 값은 사이드바(및 SC-001의 SSH 접속 설정)에서도 바꿀 수 있고, 프로세스 수준 `Settings` 싱글톤에만 보관됩니다(그래프 상태/체크포인트에 비밀값이 들어가지 않음). ① 진단 탭은 설정 원문을 붙여넣지 않고 호스트·SSH 사용자·비밀번호 또는 키·Apache/Tomcat 경로로 수집합니다. `Host key verification failed` 는 기본값 `accept-new` 로 최초 접속을 허용하면 해소됩니다.
 
-SC-002C preflight는 `config/allowed_hosts.txt`에 없는 호스트로의 부하를 차단합니다. **이 Run에서 SC-001 SSH 진단에 쓴 호스트는 자동 허용**되며, 실행 탭·사이드바에서 다른 호스트를 허용 목록에 추가할 수 있습니다. 대상 TCP 연결이 타임아웃이면 보안그룹/방화벽 또는 AWS 공인 IP 헤어핀(같은 인스턴스면 `target.host=localhost`)을 안내합니다.
+SC-002C preflight는 `config/allowed_hosts.txt`에 없는 호스트로의 부하를 차단합니다. **이 Run에서 SC-001 SSH 진단에 쓴 호스트는 자동 허용**되며, 실행 탭·사이드바에서 다른 호스트를 허용 목록에 추가할 수 있습니다. 부하기가 대상 WAS와 같은 EC2이면 공인 IP(헤어핀 NAT)로 보내지 않고 **localhost로 자동 전환**합니다. 그렇지 않으면 브라우저에서는 되는데 JMeter만 100% 에러·access log 공백인 상태가 됩니다. 실행 중에는 JTL의 실패 코드(ConnectException 등)를 함께 보여 줍니다.
 
 ## 그래프 개요
 

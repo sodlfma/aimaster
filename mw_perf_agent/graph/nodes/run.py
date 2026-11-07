@@ -3,29 +3,49 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from typing import Optional
 
 from langgraph.config import get_stream_writer
 
 from config.settings import get_settings
 from jmeter.jtl import load_statistics
 from tools.jmeter_runner import run_jmeter as _run
-from tools.preflight import preflight_checks
+from tools.preflight import preflight_checks, resolve_load_target
 from ..state import PerfAgentState
 
 
-def preflight(state: PerfAgentState) -> dict:
+def _diagnosed_host(state: PerfAgentState) -> Optional[str]:
     target = state.get("target_info")
     if isinstance(target, dict):
-        diagnosed = target.get("host")
-    else:
-        diagnosed = getattr(target, "host", None) if target is not None else None
+        return target.get("host")
+    return getattr(target, "host", None) if target is not None else None
+
+
+def _merged_overrides(state: PerfAgentState) -> tuple[dict, dict, list[str]]:
+    opts = dict(state.get("options") or {})
+    user = dict(opts.get("jmeter_overrides") or {})
+    _host, _port, _proto, merged, notes = resolve_load_target(
+        state["scenario_spec"], state.get("run_mode", "local"), user,
+    )
+    opts["jmeter_overrides"] = merged
+    return opts, merged, notes
+
+
+def preflight(state: PerfAgentState) -> dict:
+    opts, merged, notes = _merged_overrides(state)
     checks = preflight_checks(
         state["scenario_spec"], state["load_plan"], state.get("run_mode", "local"),
         validation_ok=state["validation"].ok if state.get("validation") else False,
-        diagnosed_host=diagnosed,
+        diagnosed_host=_diagnosed_host(state),
+        overrides=merged,
+        rewrite_notes=notes,
     )
     blocked = [c.name for c in checks if c.blocking and not c.ok]
-    return {"preflight": checks, "node_log": [f"preflight: blocked={blocked}"]}
+    out: dict = {"preflight": checks, "options": opts, "node_log": [f"preflight: blocked={blocked}"]}
+    if notes:
+        out["warnings"] = notes
+        out["node_log"] = [f"preflight: blocked={blocked}; " + " ".join(notes)]
+    return out
 
 
 def run_jmeter(state: PerfAgentState) -> dict:
@@ -35,12 +55,12 @@ def run_jmeter(state: PerfAgentState) -> dict:
         writer = get_stream_writer()
     except Exception:  # outside of a graph run (unit tests)
         writer = lambda _: None  # noqa: E731
-    opts = state.get("options") or {}
+    _opts, merged, notes = _merged_overrides(state)
     result = _run(
         state["run_id"], run_dir, state["bundle"], state.get("run_mode", "local"), state.get("load_plan"),
-        on_progress=writer, overrides=opts.get("jmeter_overrides"),
+        on_progress=writer, overrides=merged,
     )
-    warnings = []
+    warnings = list(notes)
     if result.stopped:
         warnings.append("JMeter 실행이 중지되었습니다. 실행 확인 단계로 돌아갑니다.")
     elif result.exit_code != 0:

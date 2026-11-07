@@ -25,9 +25,16 @@ def _progress_panel(monitor: driver.RunMonitor, plan) -> None:
         if plan:
             mx = max(s.target_concurrency for s in plan.steps)
             st.progress(min(1.0, latest["active"] / max(1, mx)), text=f"동시 사용자 {latest['active']}/{mx}")
+        if latest.get("err_pct", 0) >= 50 and latest.get("failure_hint"):
+            st.error(latest["failure_hint"])
+            samples = latest.get("failures") or []
+            if samples:
+                st.dataframe(pd.DataFrame(samples), hide_index=True, use_container_width=True)
+        elif latest.get("failure_hint"):
+            st.warning(latest["failure_hint"])
     recent = monitor.recent(12)
     if recent:
-        st.dataframe(pd.DataFrame([{k: v for k, v in e.items() if k != "cmd"} for e in recent]), hide_index=True, use_container_width=True, height=240)
+        st.dataframe(pd.DataFrame([{k: v for k, v in e.items() if k not in ("cmd", "failures")} for e in recent]), hide_index=True, use_container_width=True, height=240)
     if monitor.node_log:
         st.caption(" · ".join(monitor.node_log[-4:]))
 
@@ -102,8 +109,14 @@ def render(graph) -> None:
             reachable = next((c for c in pf if c.name == "target_reachable"), None)
             if reachable and not reachable.ok:
                 st.info(reachable.detail)
-                if spec and "localhost" in (reachable.detail or "") and "target.host=localhost" in (reachable.detail or ""):
-                    st.caption("아래 속성 오버라이드에 `target.host=localhost` 한 줄을 넣으면 같은 머신의 Tomcat으로 부하를 보냅니다.")
+            load_t = next((c for c in pf if c.name == "load_target"), None)
+            if load_t:
+                st.success(load_t.detail)
+            probe = next((c for c in pf if c.name == "http_probe"), None)
+            if probe and not probe.ok:
+                st.error(probe.detail)
+            elif probe and probe.ok:
+                st.caption(probe.detail)
         rr = vals.get("run_result")
         if rr and rr.stopped:
             st.warning(f"이전 실행이 중지되었습니다 (exit={rr.exit_code}).")
