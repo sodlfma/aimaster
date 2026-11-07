@@ -36,6 +36,8 @@ def isolated_settings(tmp_path, monkeypatch):
         jmeter_bin_override=str(FIXTURES / "fake_jmeter.py"),
         runs_dir=str(tmp_path / "runs"),
         allowed_hosts_file=str(allowed),
+        ssh_password="",
+        ssh_wrapper_cmd="",
     )
     reset_settings(s)
     yield s

@@ -117,7 +117,7 @@ def test_builtin_ssh_argv_includes_account_and_accept_new(isolated_settings, tmp
     )
     cmd = build_ssh_argv("was01.corp.local", "/sw/tomcat/shl/tomcat.env")
     assert cmd[0] == "ssh"
-    assert cmd[cmd.index("-o") + 1] == "BatchMode=yes"
+    assert "BatchMode=yes" in cmd
     assert "StrictHostKeyChecking=accept-new" in cmd
     assert cmd[cmd.index("-p") + 1] == "2222"
     assert cmd[cmd.index("-i") + 1] == str(key)
@@ -197,3 +197,71 @@ def test_collect_gc_stats_cmd_builtin(isolated_settings):
     cmd = collect_gc_stats_cmd("was01.corp.local", 1234, 5000, 10)
     assert cmd[-6:] == ["was01.corp.local", "jstat", "-gcutil", "1234", "5000", "10"]
     assert cmd[cmd.index("-l") + 1] == "wasadm"
+
+
+def test_password_disables_batchmode_and_stays_off_argv(isolated_settings):
+    from config.settings import get_settings, update_settings
+    from tools.ssh_wrapper import ssh_exec_env
+
+    update_settings(ssh_wrapper_cmd="", ssh_user="wasadm", ssh_password="s3cret!")
+    cmd = build_ssh_argv("was01.corp.local", "/sw/tomcat/shl/tomcat.env")
+    joined = " ".join(cmd)
+    assert "BatchMode=yes" not in cmd
+    assert "PreferredAuthentications=password,keyboard-interactive" in cmd
+    assert "PubkeyAuthentication=no" in cmd
+    assert "s3cret!" not in joined
+    env = ssh_exec_env()
+    assert env["MW_SSH_PASSWORD"] == "s3cret!"
+    assert env["SSH_ASKPASS_REQUIRE"] == "force"
+    assert Path(env["SSH_ASKPASS"]).is_file()
+    assert get_settings().as_dict()["ssh_password"] == "***"
+
+
+def test_password_with_identity_keeps_pubkey_then_password(isolated_settings, tmp_path):
+    from config.settings import update_settings
+
+    key = tmp_path / "id_ed25519"
+    key.write_text("dummy-key\n", encoding="utf-8")
+    update_settings(
+        ssh_wrapper_cmd="",
+        ssh_identity_file=str(key),
+        ssh_password="s3cret!",
+    )
+    cmd = build_ssh_argv("was01.corp.local", "/sw/tomcat/shl/tomcat.env")
+    assert "PreferredAuthentications=publickey,password,keyboard-interactive" in cmd
+    assert "PubkeyAuthentication=no" not in cmd
+    assert cmd[cmd.index("-i") + 1] == str(key)
+
+
+def test_fetch_passes_askpass_env(isolated_settings, monkeypatch):
+    from config.settings import update_settings
+
+    update_settings(ssh_wrapper_cmd="", ssh_user="wasadm", ssh_password="s3cret!")
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["env"] = kwargs.get("env") or {}
+        captured["start_new_session"] = kwargs.get("start_new_session")
+        return SimpleNamespace(returncode=255, stdout="", stderr="Permission denied (password).")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with pytest.raises(RemoteConfigError) as exc:
+        fetch_from_homes("was01.corp.local", "/sw/apache", "/sw/tomcat", ssh_wrapper_cmd="", timeout=5)
+    assert captured["env"]["MW_SSH_PASSWORD"] == "s3cret!"
+    assert "s3cret!" not in " ".join(captured["cmd"])
+    assert captured["start_new_session"] is True
+    assert "ASKPASS" in str(exc.value) or "비밀번호" in str(exc.value)
+
+
+def test_ssh_askpass_prints_password_only(monkeypatch):
+    from tools.ssh_askpass import main
+
+    monkeypatch.setenv("MW_SSH_PASSWORD", "s3cret!")
+    from io import StringIO
+
+    buf = StringIO()
+    monkeypatch.setattr(sys, "stdout", buf)
+    assert main(["ssh_askpass.py", "Password:"]) == 0
+    assert buf.getvalue() == "s3cret!"
+    assert main(["ssh_askpass.py", "Are you sure you want to continue connecting (yes/no)?"]) == 1

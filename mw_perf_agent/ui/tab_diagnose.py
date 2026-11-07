@@ -95,7 +95,7 @@ def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str,
 
 def render(graph) -> None:
     st.header("1. 인프라 진단 및 4단계 부하 플랜 산출 (SC-001)")
-    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. SSH 사용자·키로 서버에서 읽어 옵니다. 비밀번호 인증은 지원하지 않습니다.")
+    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. SSH 사용자·비밀번호 또는 키로 서버에서 읽어 옵니다.")
 
     s = get_settings()
     col1, col2, col3 = st.columns(3)
@@ -120,12 +120,14 @@ def render(graph) -> None:
         st.session_state["diag_ssh_port"] = int(s.ssh_port or DEFAULT_SSH_PORT)
     if "diag_ssh_timeout" not in st.session_state:
         st.session_state["diag_ssh_timeout"] = DEFAULT_TIMEOUT_SEC
+    if "diag_ssh_password" not in st.session_state:
+        st.session_state["diag_ssh_password"] = s.ssh_password or ""
 
-    with st.expander("SSH 접속 (사용자 · 키 · 호스트 키)", expanded=True):
+    with st.expander("SSH 접속 (사용자 · 비밀번호 · 키)", expanded=True):
         st.markdown(
-            "기본은 OpenSSH를 비대화형(`BatchMode`)으로 호출합니다. "
-            "비밀번호를 넣을 칸은 없습니다 — 개인키 또는 이미 로드된 `ssh-agent`를 사용하세요. "
-            "`Host key verification failed` 는 처음 보는 서버에서 흔하며, 아래 호스트 키 정책을 "
+            "비밀번호는 명령줄에 넣지 않고 OpenSSH `SSH_ASKPASS`로 전달합니다. "
+            "개인키만 있으면 비밀번호는 비워 두세요. "
+            "`Host key verification failed` 는 처음 보는 서버에서 흔하며, 호스트 키 정책을 "
             "**최초 접속 허용**으로 두면 등록됩니다."
         )
         u1, u2, u3 = st.columns(3)
@@ -137,15 +139,21 @@ def render(graph) -> None:
                 help="환경변수 SSH_USER. 비우면 이 프로세스를 실행 중인 OS 사용자, 또는 호스트 칸의 user@host",
             )
         with u2:
-            ssh_port = st.number_input("SSH 포트", min_value=1, max_value=65535, step=1, key="diag_ssh_port")
-        with u3:
-            strict_choice = st.selectbox(
-                "호스트 키 정책",
-                options=list(STRICT_HOST_KEY_LABELS.keys()),
-                format_func=lambda k: STRICT_HOST_KEY_LABELS[k],
-                key="diag_ssh_strict",
-                help="accept-new: 처음 보는 호스트는 known_hosts에 추가하고, 키가 바뀐 호스트는 거부합니다.",
+            ssh_password = st.text_input(
+                "SSH 비밀번호",
+                key="diag_ssh_password",
+                type="password",
+                help="환경변수 SSH_PASSWORD. 그래프 체크포인트에는 저장되지 않습니다.",
             )
+        with u3:
+            ssh_port = st.number_input("SSH 포트", min_value=1, max_value=65535, step=1, key="diag_ssh_port")
+        strict_choice = st.selectbox(
+            "호스트 키 정책",
+            options=list(STRICT_HOST_KEY_LABELS.keys()),
+            format_func=lambda k: STRICT_HOST_KEY_LABELS[k],
+            key="diag_ssh_strict",
+            help="accept-new: 처음 보는 호스트는 known_hosts에 추가하고, 키가 바뀐 호스트는 거부합니다.",
+        )
         ssh_identity = st.text_input(
             "개인키 파일 경로",
             key="diag_ssh_identity",
@@ -168,6 +176,7 @@ def render(graph) -> None:
             ssh_user=ssh_user.strip(),
             ssh_port=int(ssh_port),
             ssh_identity_file=identity_path,
+            ssh_password=ssh_password,
             ssh_strict_host_key=strict_choice,
         )
         try:
@@ -177,9 +186,10 @@ def render(graph) -> None:
                 template=wrapper,
                 must_exist_identity=False,
             )
-            st.caption("실행 명령 미리보기: `" + " ".join(shlex.quote(p) for p in preview) + "`")
-        except Exception as exc:
-            st.caption(f"명령 미리보기 불가: {exc}")
+            extra = " · 비밀번호: ASKPASS로 전달 (명령줄에 없음)" if ssh_password else ""
+            st.caption("실행 명령 미리보기: `" + " ".join(shlex.quote(p) for p in preview) + "`" + extra)
+        except Exception as extra_exc:
+            st.caption(f"명령 미리보기 불가: {extra_exc}")
 
     run_ssh, run_mock = st.columns(2)
     ssh_clicked = run_ssh.button("SSH로 설정 수집 및 진단", type="primary", use_container_width=True)

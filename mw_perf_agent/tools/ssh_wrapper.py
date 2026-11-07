@@ -1,9 +1,11 @@
 """Wrap the in-house SSH shell runner with subprocess (shell=False) — see spec 6.1."""
 from __future__ import annotations
 
+import os
 import re
 import shlex
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -173,20 +175,53 @@ def format_ssh_error(returncode: int, stderr: str) -> str:
         )
     if "permission denied" in low or "authentication failed" in low or "no such identity" in low:
         hints.append(
-            "SSH 인증에 실패했습니다. 사용자명과 개인키 경로를 확인하세요. "
-            "비밀번호 인증은 비대화형(BatchMode)에서 사용할 수 없으므로 키 또는 ssh-agent가 필요합니다."
+            "SSH 인증에 실패했습니다. 사용자명, 비밀번호, 개인키 경로를 확인하세요. "
+            "비밀번호는 진단 화면의 SSH 접속 칸에 넣으면 ASKPASS로 전달됩니다."
         )
     if "could not resolve hostname" in low:
         hints.append("호스트명을 해석하지 못했습니다. 대상 호스트 값을 확인하세요.")
     if returncode == 255 and not hints:
         hints.append(
-            "ssh 연결 단계 실패(exit 255). 사용자/포트/개인키/호스트 키 설정을 확인하세요. "
+            "ssh 연결 단계 실패(exit 255). 사용자/비밀번호/포트/개인키/호스트 키 설정을 확인하세요. "
             "계정 정보는 진단 화면의 'SSH 접속'에서 입력합니다."
         )
     prefix = f"# error: exit {returncode}: {text[:300]}"
     if hints:
         return prefix + "\n# hint: " + " ".join(hints)
     return prefix
+
+
+def effective_ssh_password(override: Optional[str] = None) -> str:
+    if override is not None:
+        return override
+    return get_settings().ssh_password or ""
+
+
+def askpass_executable() -> str:
+    """Return a 0700 shell wrapper that runs ssh_askpass.py with this interpreter."""
+    src = Path(__file__).resolve().parent / "ssh_askpass.py"
+    dest_dir = Path(get_settings().runs_dir) / ".ssh-keys"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "askpass.sh"
+    body = "#!/bin/sh\n" + f"exec {shlex.quote(sys.executable)} {shlex.quote(str(src))} \"$@\"\n"
+    if not dest.exists() or dest.read_text(encoding="utf-8") != body:
+        dest.write_text(body, encoding="utf-8")
+        dest.chmod(0o700)
+    return str(dest)
+
+
+def ssh_exec_env(password: Optional[str] = None) -> dict[str, str]:
+    """Copy os.environ and, if a password is set, wire SSH_ASKPASS (never argv)."""
+    env = os.environ.copy()
+    secret = effective_ssh_password(password)
+    if not secret:
+        return env
+    env["MW_SSH_PASSWORD"] = secret
+    env["SSHPASS"] = secret  # sshpass -e 를 쓰는 사내 래퍼용
+    env["SSH_ASKPASS"] = askpass_executable()
+    env["SSH_ASKPASS_REQUIRE"] = "force"
+    env.setdefault("DISPLAY", ":0")
+    return env
 
 
 def _connection_from_settings(
@@ -234,14 +269,30 @@ def build_ssh_argv(
     if not user_ok:
         user_ok = parsed_user
     tmpl = effective_ssh_wrapper_cmd(template)
+    password = effective_ssh_password()
     if uses_builtin_openssh(template):
         cmd = [
             "ssh",
-            "-o", "BatchMode=yes",
             "-o", "ConnectTimeout=10",
             "-o", f"StrictHostKeyChecking={strict_ok}",
             "-p", str(port_ok),
         ]
+        if password:
+            # BatchMode=yes 는 비밀번호 프롬프트를 막아 ASKPASS가 동작하지 않는다.
+            cmd += [
+                "-o", "NumberOfPasswordPrompts=1",
+                "-o", "PasswordAuthentication=yes",
+                "-o", "KbdInteractiveAuthentication=yes",
+            ]
+            if identity_ok:
+                cmd += ["-o", "PreferredAuthentications=publickey,password,keyboard-interactive"]
+            else:
+                cmd += [
+                    "-o", "PreferredAuthentications=password,keyboard-interactive",
+                    "-o", "PubkeyAuthentication=no",
+                ]
+        else:
+            cmd += ["-o", "BatchMode=yes"]
         if identity_ok:
             cmd += ["-i", identity_ok, "-o", "IdentitiesOnly=yes"]
         if user_ok:
@@ -298,7 +349,16 @@ def fetch_remote_configs(
             continue
         cmd = build_ssh_argv(host, path, template=template)
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, shell=False)
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                shell=False,
+                env=ssh_exec_env(),
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
         except subprocess.TimeoutExpired:
             out[path] = f"# error: timeout after {timeout}s"
             continue

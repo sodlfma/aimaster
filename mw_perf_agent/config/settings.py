@@ -45,6 +45,7 @@ class Settings:
     ssh_user: str = os.environ.get("SSH_USER", "")
     ssh_port: int = int(os.environ.get("SSH_PORT", "22") or "22")
     ssh_identity_file: str = os.environ.get("SSH_IDENTITY_FILE", "")
+    ssh_password: str = os.environ.get("SSH_PASSWORD", "")
     ssh_strict_host_key: str = os.environ.get("SSH_STRICT_HOST_KEY", "accept-new")
     # Plan defaults
     bucket_sec: int = 5
@@ -86,6 +87,7 @@ class Settings:
     def as_dict(self) -> dict:
         d = asdict(self)
         d["llm_api_key"] = "***" if self.llm_api_key else None
+        d["ssh_password"] = "***" if self.ssh_password else None
         return d
 
 
