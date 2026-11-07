@@ -64,3 +64,171 @@ python -m pytest tests -q
 ```
 
 `tests/fixtures/fake_jmeter.py`가 JMeter CLI를 흉내 내어(Summariser 출력, 합성 JTL/statistics.json) JMeter·LLM 없이 그래프 전체 폐루프(진단 → 3개 게이트 → preflight → 실행 → 분석 → 리포트 → 재플랜)를 검증합니다. LLM 노드는 가짜 structured-output 모델을 주입해 마스킹, 재시도/Fallback, 대상 호스트 고정 규칙을 검증합니다.
+
+## EC2 서버 셋팅
+
+에이전트(Streamlit)와 JMeter(Local 모드)를 한 대에 두고, 부하 대상 WAS/DB는 별도 서버에 두는 구성입니다. 측정 대상과 같은 인스턴스에 올리면 JMeter CPU 사용 때문에 결과가 오염됩니다.
+
+### 인스턴스
+
+| 용도 | 인스턴스 | vCPU / RAM | JMeter 힙 |
+|---|---|---|---|
+| 기능 확인 (동시 약 300까지) | `t3.large` / `t3a.large` | 2 / 8 GB | `-Xmx3g` |
+| 기본 플랜 (동시 약 1,000, Step 4) | `c6i.xlarge` / `c7i.xlarge` | 4 / 8 GB | `-Xmx4g` |
+| 그 이상 | `c6i.2xlarge` 또는 분산 모드(`-R`) | 8 / 16 GB | `-Xmx8g` |
+
+- OS: Amazon Linux 2023 또는 Ubuntu 22.04/24.04
+- 디스크: gp3 30 GB 이상. run 하나당 JTL과 HTML 리포트로 0.5~1 GB
+- 대상 WAS와 같은 VPC, 같은 AZ
+- 보안 그룹 인바운드: `22`(작업자 IP), `8501`(Streamlit, 작업자 IP만). 아웃바운드: 대상 WAS 포트, LLM API를 쓰면 `443`
+- `t3`는 Unlimited 모드로 두지 않으면 크레딧 소진 뒤 TPS가 흔들립니다
+- 앱과 LangChain을 같이 띄우려면 RAM 1 GB(t3.micro)에서는 기동 중 프로세스가 죽습니다. 최소 4 GB, 부하 테스트까지 하면 8 GB
+
+### OS 패키지
+
+Amazon Linux 2023의 기본 `python3`는 3.9입니다. 이 프로젝트는 Python 3.10 이상(3.11 또는 3.12)이 필요합니다.
+
+Amazon Linux 2023:
+
+```bash
+sudo dnf update -y
+sudo dnf install -y java-17-amazon-corretto-headless python3.11 python3.11-pip git unzip wget tmux
+```
+
+Ubuntu 22.04 / 24.04:
+
+```bash
+sudo apt update && sudo apt install -y openjdk-17-jre-headless python3 python3-pip python3-venv git unzip wget tmux
+```
+
+Java는 17입니다. JMeter 5.6.x는 Java 8 이상이고 17을 권장합니다. Docker 모드는 쓰지 않으면 `docker` 패키지는 필요 없습니다.
+
+### JMeter 5.6.3
+
+JMX 템플릿이 `jmeter="5.6.3"` 기준이고, 순정 요소만 사용하므로 플러그인은 필요 없습니다.
+
+```bash
+cd /opt
+sudo wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz
+sudo tar xzf apache-jmeter-5.6.3.tgz
+sudo ln -sfn /opt/apache-jmeter-5.6.3 /opt/apache-jmeter
+sudo chown -R "$USER" /opt/apache-jmeter-5.6.3
+echo 'export JMETER_HOME=/opt/apache-jmeter' >> ~/.bashrc
+echo 'export PATH=$JMETER_HOME/bin:$PATH' >> ~/.bashrc
+echo 'export HEAP="-Xms1g -Xmx4g -XX:MaxMetaspaceSize=256m"' >> ~/.bashrc
+source ~/.bashrc
+jmeter -v
+```
+
+힙은 인스턴스 RAM의 절반 정도로 맞춥니다. 위 예시는 8 GB 인스턴스 기준입니다.
+
+수백 스레드 이상을 띄울 때는 파일 디스크립터와 로컬 포트 범위도 늘립니다. 생략하면 Step 3~4에서 부하기 쪽 `Too many open files`가 대상 서버 장애처럼 보입니다.
+
+```bash
+sudo tee -a /etc/security/limits.conf >/dev/null << 'EOF'
+*  soft nofile 65535
+*  hard nofile 65535
+*  soft nproc  65535
+*  hard nproc  65535
+EOF
+sudo tee /etc/sysctl.d/99-jmeter.conf >/dev/null << 'EOF'
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_tw_reuse = 1
+net.core.somaxconn = 4096
+EOF
+sudo sysctl --system
+```
+
+재로그인 후 `ulimit -n`이 `65535`인지 확인합니다.
+
+### 앱과 Python 패키지
+
+```bash
+git clone <repo-url> ~/aimaster
+cd ~/aimaster/mw_perf_agent
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+`requirements.txt`에 있는 패키지:
+
+- `langgraph`, `langgraph-checkpoint-sqlite`, `langchain`, `langchain-core`
+- `langchain-openai`, `langchain-anthropic` (쓰는 제공자만 있어도 됩니다)
+- `streamlit`, `pandas`, `pydantic`, `jinja2`
+- `pytest`
+
+원격 브라우저에서 WebSocket(`/_stcore/stream`) 핸드셰이크가 실패하면 가상환경의 서버 라이브러리를 아래 범위로 맞춥니다. 앱 소스는 바꾸지 않습니다.
+
+```bash
+pip install -U 'uvicorn>=0.52,<1' 'websockets>=16.1.1,<17'
+```
+
+설치 확인:
+
+```bash
+python -m pytest tests -q
+```
+
+### 환경 변수와 허용 호스트
+
+`~/.bashrc` 또는 권한 600인 env 파일에 둡니다. API 키는 저장소에 넣지 않습니다.
+
+```bash
+export JMETER_HOME=/opt/apache-jmeter
+export RUNS_DIR=/data/mw_perf_runs
+export ALLOWED_HOSTS_FILE="$HOME/aimaster/mw_perf_agent/config/allowed_hosts.txt"
+export MAX_LOCAL_THREADS=1000
+# LLM을 쓸 때만
+export LLM_MODEL=openai:gpt-4o
+export LLM_API_KEY=...
+# export LLM_BASE_URL=https://사내-openai-호환-엔드포인트/v1
+```
+
+`LLM_API_KEY` 대신 제공자 변수(`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)를 써도 됩니다. Bedrock은 `pip install langchain-aws` 후 `LLM_MODEL=bedrock_converse:...`로 두고, 키 대신 EC2 IAM 역할로 인증합니다.
+
+`config/allowed_hosts.txt`의 기본값은 `localhost`, `127.0.0.1`뿐입니다. 부하를 줄 WAS의 호스트 또는 IP를 이 파일에 넣지 않으면 preflight에서 실행이 차단됩니다.
+
+### Streamlit 설정
+
+공인 IP로 바로 붙을 때 하얀 화면과 회색 네모에서 멈추면 `~/.streamlit/config.toml`을 둡니다. 앱 디렉터리의 `.streamlit/config.toml`과 같은 내용입니다.
+
+```bash
+mkdir -p ~/.streamlit
+cat > ~/.streamlit/config.toml << 'EOF'
+[server]
+headless = true
+address = "0.0.0.0"
+port = 8501
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+fileWatcherType = "none"
+allowedHosts = ["*"]
+
+[browser]
+gatherUsageStats = false
+EOF
+```
+
+`fileWatcherType = "none"`은 앱 폴더 안 `.venv`를 감시하다 `inotify` 한도를 넘는 문제를 막습니다.
+
+### 기동과 재시작
+
+```bash
+cd ~/aimaster/mw_perf_agent && source .venv/bin/activate
+streamlit run app.py --server.address 0.0.0.0 --server.port 8501 --server.headless true
+```
+
+`You can now view your Streamlit app`가 보이면 기동된 것입니다. 이 터미널을 닫으면 프로세스도 종료됩니다. 다시 띄울 때는 그 터미널에서 `Ctrl+C`로 끄거나, 세션을 이미 닫았으면 `pkill -f "streamlit run app.py"` 후 위 명령을 다시 실행합니다.
+
+브라우저 주소는 `http://<공인IP>:8501`입니다. `https://`로 열면 인증서가 없어 WebSocket이 실패하고 대기 화면만 남습니다. 서버 안에서는 `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8501/_stcore/health`가 `200`이면 HTTP는 정상입니다.
+
+노트북 네트워크가 8501의 WebSocket 업그레이드만 버리는 경우가 있습니다. 콘솔에 `WebSocket connection to 'ws://<공인IP>:8501/_stcore/stream' failed`가 나오고 서버 로그가 새로고침 때 늘지 않으면 SSH 터널로 접속합니다.
+
+```bash
+ssh -i <키.pem> -L 8501:127.0.0.1:8501 ec2-user@<공인IP>
+```
+
+터널이 유지된 상태에서 브라우저는 `http://127.0.0.1:8501`을 엽니다. Streamlit에는 로그인 화면이 없으므로 8501은 보안 그룹에서 작업자 IP로만 열거나 터널만 사용합니다.
