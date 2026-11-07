@@ -21,7 +21,7 @@ JMeter 없이도 번들 생성 + 외부 실행 결과(JTL) 업로드 분석(`bun
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `LLM_MODEL` | LangChain `init_chat_model` 형식 (`openai:gpt-4o`, `anthropic:claude-3-5-sonnet-latest`) | (없음 → 오프라인) |
-| `LLM_BASE_URL` / `LLM_API_KEY` | OpenAI 호환 사내 API 등 | |
+| `LLM_BASE_URL` / `LLM_API_KEY` | OpenAI 호환 사내 API. Base URL은 `/v1` 까지만 (`/chat/completions` 제외). 405면 URL이 잘못된 것 | |
 | `LLM_ENABLED` / `LLM_INTERPRET` / `LLM_MASK` | LLM 사용 / 해석 리포트 / 호스트·IP 마스킹 | `LLM_MODEL` 유무 / true / true |
 | `JMETER_HOME` 또는 `JMETER_BIN` | 로컬 JMeter | |
 | `JMETER_DOCKER_IMAGE`, `JMETER_REMOTE_HOSTS` | Docker / 분산(-R) 모드 | `justb4/jmeter:latest` / 없음 |
