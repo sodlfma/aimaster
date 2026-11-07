@@ -37,10 +37,21 @@ def ingest_inputs(state: PerfAgentState) -> dict:
 def parse_regex(state: PerfAgentState) -> dict:
     cfg, target, warnings = parse_all(state.get("raw_inputs") or {})
     existing = state.get("target_info") or TargetInfo()
+    if isinstance(existing, dict):
+        existing = TargetInfo.model_validate(existing)
+    updates: dict = {}
     if not existing.host and target.host:
-        existing = target
-    elif target.host and existing.host == target.host:
-        existing = target
+        updates["host"] = target.host
+    if not existing.apache_home and target.apache_home:
+        updates["apache_home"] = target.apache_home
+    if not existing.tomcat_home and target.tomcat_home:
+        updates["tomcat_home"] = target.tomcat_home
+    if not existing.instances and target.instances:
+        updates["instances"] = target.instances
+    if not existing.private_ips and target.private_ips:
+        updates["private_ips"] = target.private_ips
+    if updates:
+        existing = existing.model_copy(update=updates)
     return {
         "parsed_config": cfg,
         "target_info": existing,

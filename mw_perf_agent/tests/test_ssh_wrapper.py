@@ -13,7 +13,9 @@ from tools.ssh_wrapper import (
     build_ssh_argv,
     collect_gc_stats_cmd,
     fetch_from_homes,
+    fetch_private_ips,
     format_ssh_error,
+    parse_ipv4s,
     parse_user_host,
     resolve_remote_path,
     split_wrapper_output,
@@ -45,6 +47,15 @@ def test_split_wrapper_output_separator_convention():
     parts = split_wrapper_output(stdout)
     assert parts["/sw/tomcat/shl/tomcat.env"].strip() == "JAVA_OPTS=x"
     assert "MaxRequestWorkers 400" in parts["/sw/apache/conf/httpd-mpm.conf"]
+
+
+def test_parse_ipv4s_skips_loopback_and_link_local():
+    text = "127.0.0.1 169.254.169.254 10.0.1.20 172.31.5.8/20"
+    assert parse_ipv4s(text) == ["10.0.1.20", "172.31.5.8"]
+
+
+def test_fetch_private_ips_skips_inhouse_wrapper():
+    assert fetch_private_ips("was01.corp.local", ssh_wrapper_cmd=WRAPPER) == []
 
 
 def test_fetch_from_homes_via_fake_sshrun():

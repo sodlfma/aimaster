@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from config.settings import Settings, get_settings
+from jmeter.jtl import failure_snapshot
 from model.schemas import BundlePaths, LoadPlan, RunResult
+
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 SUMMARY_RE = re.compile(
     r"summary \+\s+(?P<count>\d+) in (?P<elapsed>\d{2}:\d{2}:\d{2}) =\s+(?P<tps>[\d.]+)/s "
@@ -71,7 +74,12 @@ def build_command(run_dir: Path, bundle: BundlePaths, mode: str, settings: Setti
     if mode == "docker":
         rd = str(run_dir.resolve())
         docker_common = [c.replace(rd, "/runs") for c in common]
-        return ["docker", "run", "--rm", "-v", f"{rd}:/runs", settings.docker_image] + docker_common
+        cmd = ["docker", "run", "--rm", "-v", f"{rd}:/runs"]
+        # Loopback in a bridge-network container is the container, not Tomcat on the host.
+        host = str((overrides or {}).get("target.host") or "")
+        if host in LOOPBACK_HOSTS:
+            cmd += ["--network", "host"]
+        return cmd + [settings.docker_image] + docker_common
     jmeter_bin = settings.jmeter_bin
     if not jmeter_bin:
         raise RuntimeError("JMeter 실행 파일을 찾을 수 없습니다 (JMETER_HOME 또는 JMETER_BIN 설정)")
@@ -126,6 +134,10 @@ def run_jmeter(
             if summ:
                 summ["event"] = "summary"
                 summ["step"] = guess_step(summ["active"], plan)
+                snap = failure_snapshot(jtl)
+                if snap.get("hint"):
+                    summ["failure_hint"] = snap["hint"]
+                    summ["failures"] = snap.get("samples") or []
                 emit(summ)
             elif "ERROR" in line or "Exception" in line:
                 emit({"event": "log", "line": line.rstrip()[:300]})

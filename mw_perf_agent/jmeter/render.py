@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
@@ -10,12 +10,24 @@ from model.schemas import LoadPlan, RequestSpec, ScenarioInput, ScenarioSpec, As
 
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 
+
+def split_path_query(path: str) -> tuple[str, list[tuple[str, str]]]:
+    """Split `/api/x?holdMs=300` so JMeter HttpClient4 does not treat `?` as part of the path."""
+    raw = path or "/"
+    if "?" not in raw:
+        return raw, []
+    p, qs = raw.split("?", 1)
+    return (p or "/"), parse_qsl(qs, keep_blank_values=True)
+
+
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATE_DIR)),
     autoescape=False,  # templates escape explicitly with |e where XML needs it
     undefined=StrictUndefined,
     keep_trailing_newline=True,
 )
+_env.filters["http_path"] = lambda p: split_path_query(p)[0]
+_env.filters["http_query"] = lambda p: split_path_query(p)[1]
 
 
 def render_jmx(scenario: ScenarioSpec, plan: LoadPlan, run_id: str) -> str:
@@ -51,6 +63,8 @@ def scenario_from_url(inp: ScenarioInput) -> ScenarioSpec:
         method = "GET"
     headers = dict(inp.headers)
     body = inp.body or None
+    if method in ("GET", "DELETE") and not body:
+        headers = {k: v for k, v in headers.items() if k.lower() != "content-type"}
     if body and not any(k.lower() == "content-type" for k in headers):
         headers["Content-Type"] = "application/json"
     req = RequestSpec(

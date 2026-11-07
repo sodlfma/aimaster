@@ -16,6 +16,7 @@ from tools.ssh_wrapper import (
     RemoteConfigError,
     build_ssh_argv,
     fetch_from_homes,
+    fetch_private_ips,
     parse_user_host,
 )
 from . import driver
@@ -220,12 +221,22 @@ def render(graph) -> None:
                         timeout=int(timeout),
                     )
                 allow_host(configs.host or host_ok, persist=False)
+                private_ips = fetch_private_ips(host_s, timeout=min(8, int(timeout)), ssh_wrapper_cmd=wrapper)
+                for ip in private_ips:
+                    allow_host(ip, persist=False)
+                if private_ips:
+                    st.caption("대상 사설 IP (같은 VPC 부하기 → WAS): " + ", ".join(private_ips))
                 _run_diagnosis(
                     graph,
                     configs.to_raw_inputs(),
                     f"SSH (`{host_s}`)",
                     collected=configs.files,
-                    target=TargetInfo(host=configs.host or host_ok, apache_home=apache_s, tomcat_home=tomcat_s),
+                    target=TargetInfo(
+                        host=configs.host or host_ok,
+                        apache_home=apache_s,
+                        tomcat_home=tomcat_s,
+                        private_ips=private_ips,
+                    ),
                 )
             except (RemoteConfigError, ValueError) as exc:
                 _show_ssh_error(exc)

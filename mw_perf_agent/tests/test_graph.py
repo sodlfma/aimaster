@@ -189,6 +189,7 @@ def test_preflight_allows_diagnosed_host(raw_inputs, no_llm, monkeypatch):
             return False
 
     monkeypatch.setattr("tools.preflight.socket.create_connection", lambda *a, **k: _Conn())
+    monkeypatch.setattr("tools.preflight.http_status", lambda *a, **k: (200, '{"ok":true}'))
     graph = build_graph(memory_checkpointer())
     cfg = {"configurable": {"thread_id": "t-diag-allow"}}
     _drive(graph, cfg, {

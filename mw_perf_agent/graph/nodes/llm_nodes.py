@@ -10,8 +10,9 @@ from typing import Any, Callable, Optional, Type
 import pandas as pd
 from pydantic import BaseModel
 
+from config.settings import get_settings
 from jmeter.render import apply_user_target
-from llm.invoke import LLMUnavailable, invoke_llm
+from llm.invoke import LLMUnavailable, explain_llm_error, invoke_llm, is_retryable_llm_error
 from llm.schemas import (
     AnalysisReport,
     Bottleneck,
@@ -77,13 +78,15 @@ def _llm_node(
                 return {**fallback(state), "llm_skipped": [name], "node_log": [f"{name}: skipped (no model)"]}
             except Exception as e:  # noqa: BLE001 — provider/parsing error
                 last_err = e
-                if attempt < LLM_MAX_ATTEMPTS:
-                    time.sleep(LLM_BACKOFF_SEC * (2 ** (attempt - 1)))
+                if not is_retryable_llm_error(e) or attempt >= LLM_MAX_ATTEMPTS:
+                    break
+                time.sleep(LLM_BACKOFF_SEC * (2 ** (attempt - 1)))
+        detail = explain_llm_error(last_err, get_settings().llm_base_url) if last_err else ""
         return {
             **fallback(state),
             "llm_skipped": [name],
-            "warnings": [f"{name}: LLM 호출이 {LLM_MAX_ATTEMPTS}회 실패하여 규칙 기반 결과를 사용합니다 ({str(last_err)[:120]})"],
-            "node_log": [f"{name}: fallback after {LLM_MAX_ATTEMPTS} failed attempts"],
+            "warnings": [f"{name}: LLM 호출이 {attempt}회 실패하여 규칙 기반 결과를 사용합니다 ({detail[:180]})"],
+            "node_log": [f"{name}: fallback after {attempt} failed attempt(s)"],
         }
 
     node.__name__ = name

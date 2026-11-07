@@ -51,6 +51,48 @@ def load_statistics(report_dir: Optional[str]) -> Optional[dict]:
         return None
 
 
+def failure_snapshot(path: str | Path, limit: int = 5) -> dict:
+    """Summarise recent JTL failures for the live runner (partial CSV is ok)."""
+    p = Path(path)
+    empty = {"hint": "", "samples": [], "top_codes": []}
+    if not p.exists() or p.stat().st_size < 40:
+        return empty
+    try:
+        df = pd.read_csv(p, on_bad_lines="skip", low_memory=False)
+    except (OSError, ValueError, pd.errors.EmptyDataError, pd.errors.ParserError):
+        return empty
+    if df.empty or "success" not in df.columns:
+        return empty
+    success = df["success"]
+    if success.dtype != bool:
+        success = success.astype(str).str.lower().isin(["true", "1"])
+    bad = df.loc[~success]
+    if bad.empty:
+        return empty
+    codes = (
+        bad["responseCode"].astype(str).value_counts().head(3)
+        if "responseCode" in bad.columns else None
+    )
+    top = [{"code": str(k), "count": int(v)} for k, v in (codes.items() if codes is not None else [])]
+    cols = [c for c in ("responseCode", "responseMessage", "failureMessage", "label") if c in bad.columns]
+    samples = bad.tail(limit)[cols].fillna("").astype(str).to_dict("records") if cols else []
+    parts = [f"{t['code']} × {t['count']}" for t in top]
+    msg = ""
+    if "responseMessage" in bad.columns:
+        last = str(bad.iloc[-1].get("responseMessage") or "")
+        if last:
+            msg = last.strip()[:160]
+    hint = "최근 실패: " + (", ".join(parts) if parts else "unknown")
+    if msg:
+        hint += f" ({msg})"
+    if any("Non HTTP" in str(t["code"]) or "Connect" in str(t["code"]) for t in top) or "Connect" in msg or "timed out" in msg.lower():
+        hint += (
+            " — 요청이 WAS에 도달하지 않았습니다. 부하기와 대상이 다른 EC2이면 "
+            "대상 보안그룹에 부하기 → HTTP 포트 인바운드를 허용하세요. 같은 머신이면 localhost 로 보내야 합니다."
+        )
+    return {"hint": hint, "samples": samples, "top_codes": top}
+
+
 def statistics_table(stats: Optional[dict]) -> list[dict]:
     if not stats:
         return []
