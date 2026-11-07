@@ -19,7 +19,7 @@
 
 ### 2.1 전체 시스템 개념도
 
-1. **Input**: 기존 사내 SSH 쉘 실행 프로그램을 통해 수집한 텍스트 입력 (`web_mon_cron.env` 및 인프라 설정)
+1. **Input**: 대상 호스트·Apache/Tomcat 경로. 사내 SSH 쉘 실행 프로그램이 `shl/tomcat.env`, `conf/httpd-mpm.conf` 원문을 수집
 2. **Core Processor**:
    * **SC-001 (진단)**: 정규식과 LLM CoT를 이용한 환경 변수 파싱 및 병목 임계치 산출
    * **SC-002A (부하 플랜)**: JMeter 순정 ThreadGroup 기반 XML 렌더링 노드
@@ -41,7 +41,7 @@
 
 ### 3.1 [SC-001] 3계층 병목 모델링 및 부하 플랜 산출
 
-기존 `web_mon_cron.env` 파일과 `apache/tomcat` 설정 원문을 분석하여 논리적 병목 지점을 계산합니다. 
+대상 호스트와 Apache/Tomcat 경로를 받아 SSH 래퍼로 `shl/tomcat.env`·`httpd-mpm.conf` 원문을 수집한 뒤, 논리적 병목 지점을 계산합니다. 
 * **파싱 특이사항**: 사내 템플릿 구조상 Tomcat의 핵심 설정(`maxThreads`, `port` 등)은 `server.xml` 파싱 대신 **`shl/tomcat.env` 내부의 `JAVA_OPTS` 환경변수(예: `-Dtomcat.connector.maxThreads=200`)를 정규식으로 추출하는 것을 최우선**으로 합니다.
 
 #### 병목 임계치 계산 공식 (Mathematical Modeling)
@@ -75,8 +75,8 @@ LLM 프롬프트 내에 아래 공식을 주입하여 확정적으로 계산(CoT
 
 ## 4. 도구(Tools) 연계 방식 구체화
 
-* **`fetch_remote_configs`**: 
-  무거운 외부 라이브러리(Paramiko 등) 대신, **사전 구축된 사내 SSH 쉘 실행 프로그램을 Python `subprocess.run()`으로 래핑(Wrapping)하여 호출**합니다. 반환된 표준 출력(stdout) 텍스트를 시스템 프롬프트의 컨텍스트로 전달합니다.
+* **`fetch_remote_configs(host, apache_path, tomcat_path)`**: 
+  무거운 외부 라이브러리(Paramiko 등) 대신, **사전 구축된 사내 SSH 쉘 실행 프로그램을 Python `subprocess.run(shell=False)`로 래핑(Wrapping)하여 호출**합니다. 호스트는 `^[A-Za-z0-9._-]+$`로 검증하고, 디렉터리 입력 시 `shl/tomcat.env`와 `conf/httpd-mpm.conf`를 읽어 반환된 stdout을 파서에 전달합니다. 명령 템플릿은 `SSH_WRAPPER_CMD` (`{host}` `{path}` 자리표시자)입니다.
 
 ---
 
@@ -86,9 +86,9 @@ LLM 프롬프트 내에 아래 공식을 주입하여 확정적으로 계산(CoT
 
 ### Tab 1. 환경 설정 및 인프라 진단 (SC-001)
 * **입력부**: 
-  * `web_mon_cron.env` 붙여넣기 Area
-  * `httpd-mpm.conf`, `tomcat.env` 등 서버 설정 붙여넣기 Area (SSH 래퍼 자동 수집 및 수동 입력 동시 지원)
-* **실행 버튼**: [진단 및 4단계 플랜 산출]
+  * 대상 호스트, Apache 홈(또는 `httpd-mpm.conf` 경로), Tomcat 홈(또는 `tomcat.env` 경로)
+  * SSH 래퍼 명령 템플릿 (`SSH_WRAPPER_CMD`, `{host}`/`{path}` 자리표시자). 디렉터리만 주면 사내 표준 상대경로 `conf/httpd-mpm.conf`, `shl/tomcat.env`를 붙여 수집
+* **실행 버튼**: [SSH로 설정 수집 및 진단] (로컬 미리보기용 샘플 Mock 버튼 병행)
 * **출력부**: 3개의 메트릭 카드(DB, WAS, HTTP 임계치) 및 4단계 부하 플랜 데이터 테이블
 
 ### Tab 2. JMeter 스크립트 빌더 (SC-002A)

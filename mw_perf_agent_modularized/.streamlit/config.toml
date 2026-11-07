@@ -1,0 +1,12 @@
+# 원격 접속에서 초기 로딩 화면이 끝나지 않는 문제를 막는다.
+[server]
+headless = true
+address = "0.0.0.0"
+port = 8501
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
