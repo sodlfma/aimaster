@@ -14,9 +14,15 @@ from ..state import PerfAgentState
 
 
 def preflight(state: PerfAgentState) -> dict:
+    target = state.get("target_info")
+    if isinstance(target, dict):
+        diagnosed = target.get("host")
+    else:
+        diagnosed = getattr(target, "host", None) if target is not None else None
     checks = preflight_checks(
         state["scenario_spec"], state["load_plan"], state.get("run_mode", "local"),
         validation_ok=state["validation"].ok if state.get("validation") else False,
+        diagnosed_host=diagnosed,
     )
     blocked = [c.name for c in checks if c.blocking and not c.ok]
     return {"preflight": checks, "node_log": [f"preflight: blocked={blocked}"]}

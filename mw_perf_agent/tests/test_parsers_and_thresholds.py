@@ -26,6 +26,18 @@ def test_tomcat_env_conflict_detected():
     assert conflicts == ["tomcat_max_threads"]
 
 
+def test_tomcat_port_skips_jmx_and_prefers_connector():
+    text = (
+        'JAVA_OPTS="-Dcom.sun.management.jmxremote.port=1099"\n'
+        'JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.port=8080"\n'
+        'JAVA_OPTS="$JAVA_OPTS -Dtomcat.shutdown.port=8005"\n'
+    )
+    found, conflicts = parse_tomcat_env(text)
+    assert found["tomcat_port"][0] == 8080
+    assert "jmxremote" not in found["tomcat_port"][1]
+    assert "tomcat_port" not in conflicts
+
+
 def test_httpd_mpm_picks_loaded_module_block(raw_inputs):
     found = parse_httpd_mpm(raw_inputs["httpd-mpm.conf"])
     assert found["mpm_module"][0] == "event"

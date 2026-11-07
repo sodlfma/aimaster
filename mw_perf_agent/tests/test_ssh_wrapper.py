@@ -159,8 +159,18 @@ def test_format_ssh_error_host_key():
 
 
 def test_format_ssh_error_permission_denied():
-    msg = format_ssh_error(255, "Permission denied (publickey).")
+    msg = format_ssh_error(255, "Permission denied (password).")
     assert "개인키" in msg or "인증" in msg
+
+
+def test_format_ssh_error_pubkey_only_server(isolated_settings):
+    msg = format_ssh_error(
+        255,
+        "webwas@3.35.11.139: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\n",
+    )
+    assert "비밀번호 SSH를 허용하지 않습니다" in msg
+    assert "개인키" in msg
+    assert "publickey" in msg
 
 
 def test_missing_identity_file_raises(isolated_settings, tmp_path):
@@ -207,8 +217,8 @@ def test_password_disables_batchmode_and_stays_off_argv(isolated_settings):
     cmd = build_ssh_argv("was01.corp.local", "/sw/tomcat/shl/tomcat.env")
     joined = " ".join(cmd)
     assert "BatchMode=yes" not in cmd
-    assert "PreferredAuthentications=password,keyboard-interactive" in cmd
-    assert "PubkeyAuthentication=no" in cmd
+    assert "PreferredAuthentications=publickey,password,keyboard-interactive" in cmd
+    assert "PubkeyAuthentication=no" not in cmd
     assert "s3cret!" not in joined
     env = ssh_exec_env()
     assert env["MW_SSH_PASSWORD"] == "s3cret!"

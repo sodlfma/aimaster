@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from config.settings import get_settings, update_settings
+from config.settings import allow_host, get_settings, update_settings
 from graph.nodes.diagnose import new_run_id
 from model.schemas import ParsedConfig, TargetInfo
 from tools.ssh_wrapper import (
@@ -16,6 +16,7 @@ from tools.ssh_wrapper import (
     RemoteConfigError,
     build_ssh_argv,
     fetch_from_homes,
+    parse_user_host,
 )
 from . import driver
 
@@ -126,9 +127,9 @@ def render(graph) -> None:
     with st.expander("SSH 접속 (사용자 · 비밀번호 · 키)", expanded=True):
         st.markdown(
             "비밀번호는 명령줄에 넣지 않고 OpenSSH `SSH_ASKPASS`로 전달합니다. "
-            "개인키만 있으면 비밀번호는 비워 두세요. "
-            "`Host key verification failed` 는 처음 보는 서버에서 흔하며, 호스트 키 정책을 "
-            "**최초 접속 허용**으로 두면 등록됩니다."
+            "EC2/RHEL WAS처럼 `Permission denied (publickey, gssapi-…)` 가 나오면 "
+            "**서버가 비밀번호를 받지 않는 것**이므로 해당 계정용 개인키(.pem)를 넣으세요. "
+            "`Host key verification failed` 는 호스트 키 정책을 **최초 접속 허용**으로 두면 등록됩니다."
         )
         u1, u2, u3 = st.columns(3)
         with u1:
@@ -198,7 +199,12 @@ def render(graph) -> None:
     host_s = (host or "").strip()
     apache_s = (apache_path or "").strip() or "/sw/apache"
     tomcat_s = (tomcat_path or "").strip() or "/sw/tomcat"
-    target = TargetInfo(host=host_s, apache_home=apache_s, tomcat_home=tomcat_s)
+    host_ok = ""
+    if host_s:
+        try:
+            host_ok, _ = parse_user_host(host_s)
+        except ValueError:
+            host_ok = host_s
 
     if ssh_clicked:
         if not host_s:
@@ -213,12 +219,13 @@ def render(graph) -> None:
                         ssh_wrapper_cmd=wrapper,
                         timeout=int(timeout),
                     )
+                allow_host(configs.host or host_ok, persist=False)
                 _run_diagnosis(
                     graph,
                     configs.to_raw_inputs(),
                     f"SSH (`{host_s}`)",
                     collected=configs.files,
-                    target=target,
+                    target=TargetInfo(host=configs.host or host_ok, apache_home=apache_s, tomcat_home=tomcat_s),
                 )
             except (RemoteConfigError, ValueError) as exc:
                 _show_ssh_error(exc)
@@ -229,11 +236,13 @@ def render(graph) -> None:
 
     elif mock_clicked:
         raw = _sample_raw(host_s, apache_s, tomcat_s)
+        mock_host = host_ok or host_s or "was01.corp.local"
         mock_target = TargetInfo(
-            host=host_s or "was01.corp.local",
+            host=mock_host,
             apache_home=apache_s,
             tomcat_home=tomcat_s,
         )
+        allow_host(mock_host, persist=False)
         _run_diagnosis(graph, raw, "샘플(Mock)", collected=raw, target=mock_target)
 
     collected = st.session_state.get("collected_files") or {}

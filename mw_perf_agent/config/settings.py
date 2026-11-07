@@ -12,6 +12,22 @@ from typing import Optional
 PKG_ROOT = Path(__file__).resolve().parent.parent
 
 
+def normalize_host(host: str) -> str:
+    """Strip user@, [brackets], and accidental :port so allow-list checks match."""
+    h = (host or "").strip().lower().rstrip(".")
+    if not h:
+        return ""
+    if h.startswith("[") and "]" in h:
+        h = h[1:h.index("]")]
+    if "@" in h:
+        h = h.rsplit("@", 1)[-1]
+    if h.count(":") == 1:
+        left, right = h.rsplit(":", 1)
+        if right.isdigit():
+            h = left
+    return h
+
+
 def _env_bool(key: str, default: bool) -> bool:
     val = os.environ.get(key)
     if val is None:
@@ -40,6 +56,7 @@ class Settings:
     # Paths
     runs_dir: str = os.environ.get("RUNS_DIR", str(PKG_ROOT / "runs"))
     allowed_hosts_file: str = os.environ.get("ALLOWED_HOSTS_FILE", str(PKG_ROOT / "config" / "allowed_hosts.txt"))
+    extra_allowed_hosts: list[str] = field(default_factory=list)
     # SSH: OpenSSH 접속 정보 (비밀값은 경로만 보관, 그래프 상태에는 넣지 않음)
     ssh_wrapper_cmd: str = os.environ.get("SSH_WRAPPER_CMD", "")
     ssh_user: str = os.environ.get("SSH_USER", "")
@@ -68,7 +85,7 @@ class Settings:
     def jmeter_available(self) -> bool:
         return self.jmeter_bin is not None
 
-    def allowed_hosts(self) -> list[str]:
+    def allowed_hosts_from_file(self) -> list[str]:
         p = Path(self.allowed_hosts_file)
         if not p.exists():
             return []
@@ -78,6 +95,30 @@ class Settings:
             if line and not line.startswith("#"):
                 out.append(line)
         return out
+
+    def allowed_hosts(self) -> list[str]:
+        seen: list[str] = []
+        for host in self.allowed_hosts_from_file() + list(self.extra_allowed_hosts):
+            if host and host not in seen:
+                seen.append(host)
+        return seen
+
+    def allow_host(self, host: str, persist: bool = False) -> str:
+        """Add a host to the runtime allow-list. persist=True appends the file."""
+        host = normalize_host(host)
+        if not host:
+            return ""
+        if host not in {normalize_host(h) for h in self.extra_allowed_hosts}:
+            self.extra_allowed_hosts = list(self.extra_allowed_hosts) + [host]
+        if persist:
+            existing = {normalize_host(h) for h in self.allowed_hosts_from_file()}
+            if host not in existing:
+                p = Path(self.allowed_hosts_file)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                prefix = "\n" if p.exists() and p.stat().st_size and not p.read_text(encoding="utf-8").endswith("\n") else ""
+                with p.open("a", encoding="utf-8") as fh:
+                    fh.write(f"{prefix}{host}\n")
+        return host
 
     def run_dir(self, run_id: str) -> Path:
         d = Path(self.runs_dir) / run_id
@@ -96,6 +137,10 @@ _SETTINGS: Settings = Settings()
 
 def get_settings() -> Settings:
     return _SETTINGS
+
+
+def allow_host(host: str, persist: bool = False) -> str:
+    return get_settings().allow_host(host, persist=persist)
 
 
 def update_settings(**kwargs) -> Settings:

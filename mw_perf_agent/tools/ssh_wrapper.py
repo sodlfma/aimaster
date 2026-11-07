@@ -163,17 +163,37 @@ def uses_builtin_openssh(template: Optional[str] = None) -> bool:
     return (not cmd) or cmd == DEFAULT_SSH_WRAPPER_CMD
 
 
+def offered_auth_methods(stderr: str) -> list[str]:
+    m = re.search(r"permission denied \(([^)]+)\)", stderr or "", re.I)
+    if not m:
+        return []
+    return [p.strip().lower() for p in m.group(1).split(",") if p.strip()]
+
+
 def format_ssh_error(returncode: int, stderr: str) -> str:
     text = (stderr or "").strip()
     low = text.lower()
     hints: list[str] = []
+    methods = offered_auth_methods(text)
+    password_offered = any(m in methods for m in ("password", "keyboard-interactive"))
     if "host key verification failed" in low:
         hints.append(
             "대상 서버의 SSH 호스트 키가 known_hosts에 없거나 바뀌었습니다. "
             "진단 화면의 호스트 키 정책을 '최초 접속 허용(accept-new)'으로 바꾸거나, "
             "`ssh-keyscan <host> >> ~/.ssh/known_hosts` 로 등록하세요."
         )
-    if "permission denied" in low or "authentication failed" in low or "no such identity" in low:
+    if methods and not password_offered:
+        offered = ", ".join(methods)
+        has_key = bool((get_settings().ssh_identity_file or "").strip())
+        extra = (
+            "지금 지정한 개인키가 이 계정과 맞지 않거나, 파일 권한이 너무 열려 있을 수 있습니다 (ssh는 600을 요구합니다)."
+            if has_key
+            else "비밀번호 칸은 이 서버에서 쓰이지 않습니다. 해당 계정용 OpenSSH 개인키(.pem / id_ed25519)를 '개인키 파일 경로'에 넣거나 업로드하세요."
+        )
+        hints.append(
+            f"이 서버는 비밀번호 SSH를 허용하지 않습니다 (서버가 받은 방식: {offered}). {extra}"
+        )
+    elif "permission denied" in low or "authentication failed" in low or "no such identity" in low:
         hints.append(
             "SSH 인증에 실패했습니다. 사용자명, 비밀번호, 개인키 경로를 확인하세요. "
             "비밀번호는 진단 화면의 SSH 접속 칸에 넣으면 ASKPASS로 전달됩니다."
@@ -277,20 +297,16 @@ def build_ssh_argv(
             "-o", f"StrictHostKeyChecking={strict_ok}",
             "-p", str(port_ok),
         ]
+        cmd += ["-o", "GSSAPIAuthentication=no"]
         if password:
             # BatchMode=yes 는 비밀번호 프롬프트를 막아 ASKPASS가 동작하지 않는다.
+            # 비밀번호를 넣어도 publickey는 계속 시도한다. EC2/RHEL WAS는 비밀번호를 꺼 둔 경우가 많다.
             cmd += [
                 "-o", "NumberOfPasswordPrompts=1",
                 "-o", "PasswordAuthentication=yes",
                 "-o", "KbdInteractiveAuthentication=yes",
+                "-o", "PreferredAuthentications=publickey,password,keyboard-interactive",
             ]
-            if identity_ok:
-                cmd += ["-o", "PreferredAuthentications=publickey,password,keyboard-interactive"]
-            else:
-                cmd += [
-                    "-o", "PreferredAuthentications=password,keyboard-interactive",
-                    "-o", "PubkeyAuthentication=no",
-                ]
         else:
             cmd += ["-o", "BatchMode=yes"]
         if identity_ok:
