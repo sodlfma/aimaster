@@ -126,9 +126,9 @@ def render(graph) -> None:
     with st.expander("SSH 접속 (사용자 · 비밀번호 · 키)", expanded=True):
         st.markdown(
             "비밀번호는 명령줄에 넣지 않고 OpenSSH `SSH_ASKPASS`로 전달합니다. "
-            "개인키만 있으면 비밀번호는 비워 두세요. "
-            "`Host key verification failed` 는 처음 보는 서버에서 흔하며, 호스트 키 정책을 "
-            "**최초 접속 허용**으로 두면 등록됩니다."
+            "EC2/RHEL WAS처럼 `Permission denied (publickey, gssapi-…)` 가 나오면 "
+            "**서버가 비밀번호를 받지 않는 것**이므로 해당 계정용 개인키(.pem)를 넣으세요. "
+            "`Host key verification failed` 는 호스트 키 정책을 **최초 접속 허용**으로 두면 등록됩니다."
         )
         u1, u2, u3 = st.columns(3)
         with u1:
