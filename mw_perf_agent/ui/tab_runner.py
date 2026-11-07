@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 from langgraph.types import Command
 
-from config.settings import get_settings
+from config.settings import allow_host, get_settings
 from jmeter.jtl import statistics_table
 from tools.jmeter_runner import request_stop
 from . import driver
@@ -82,11 +82,28 @@ def render(graph) -> None:
 
     if phase == "confirm_run":
         pf = vals.get("preflight") or []
+        spec = vals.get("scenario_spec")
         if pf:
             st.subheader("사전 점검 결과 (이전 시도)")
             st.dataframe(pd.DataFrame([c.model_dump() for c in pf]), hide_index=True, use_container_width=True)
-            if any(c.blocking and not c.ok for c in pf):
-                st.error("차단 항목이 있어 실행이 거부되었습니다. 원인을 해결한 뒤 다시 실행하세요 (허용 호스트: config/allowed_hosts.txt).")
+            blocked = [c for c in pf if c.blocking and not c.ok]
+            if blocked:
+                st.error("차단 항목이 있어 실행이 거부되었습니다. 원인을 해결한 뒤 다시 실행하세요.")
+            host_blocked = next((c for c in blocked if c.name == "allowed_host"), None)
+            if host_blocked and spec and spec.host:
+                st.warning(
+                    f"`{spec.host}` 가 부하 허용 목록에 없습니다. "
+                    "SC-001에서 진단한 대상이면 아래 버튼으로 추가한 뒤 다시 실행하세요."
+                )
+                if st.button(f"허용 목록에 {spec.host} 추가", key=f"allow_{run_id}_{spec.host}"):
+                    allow_host(spec.host, persist=True)
+                    st.success(f"`{spec.host}` 를 허용 목록에 추가했습니다. 다시 [JMeter 실행]을 누르세요.")
+                    st.rerun()
+            reachable = next((c for c in pf if c.name == "target_reachable"), None)
+            if reachable and not reachable.ok:
+                st.info(reachable.detail)
+                if spec and "localhost" in (reachable.detail or "") and "target.host=localhost" in (reachable.detail or ""):
+                    st.caption("아래 속성 오버라이드에 `target.host=localhost` 한 줄을 넣으면 같은 머신의 Tomcat으로 부하를 보냅니다.")
         rr = vals.get("run_result")
         if rr and rr.stopped:
             st.warning(f"이전 실행이 중지되었습니다 (exit={rr.exit_code}).")

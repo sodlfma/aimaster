@@ -3,22 +3,29 @@ from __future__ import annotations
 
 import fnmatch
 import re
-import shutil
 import socket
+import shutil
 import subprocess
+import urllib.error
+import urllib.request
 from typing import Optional
 
-from config.settings import Settings, get_settings
+from config.settings import Settings, get_settings, normalize_host
 from model.schemas import LoadPlan, PreflightCheck, ScenarioSpec
 
 _VER = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
 
 
 def host_allowed(host: str, allowed: list[str]) -> bool:
-    host = host.lower()
+    host = normalize_host(host)
     if host in ("localhost", "127.0.0.1", "::1"):
         return True
-    return any(fnmatch.fnmatch(host, pat.lower()) for pat in allowed)
+    return any(fnmatch.fnmatch(host, normalize_host(pat) or pat.lower()) for pat in allowed)
+
+
+def hosts_equivalent(a: str, b: str) -> bool:
+    left, right = normalize_host(a), normalize_host(b)
+    return bool(left) and left == right
 
 
 def check_jmeter_version(settings: Settings) -> PreflightCheck:
@@ -44,22 +51,108 @@ def check_docker(settings: Settings) -> PreflightCheck:
     return PreflightCheck(name="docker", ok=True, detail=f"image={settings.docker_image}", blocking=True)
 
 
-def check_target_reachable(scenario: ScenarioSpec, timeout: float = 3.0) -> PreflightCheck:
+def _local_ipv4s() -> set[str]:
+    found = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
     try:
-        with socket.create_connection((scenario.host, scenario.port), timeout=timeout):
-            return PreflightCheck(name="target_reachable", ok=True, detail=f"{scenario.host}:{scenario.port} TCP 연결 성공", blocking=False)
+        hostname = socket.gethostname()
+        found.add(hostname.lower())
+        for info in socket.getaddrinfo(hostname, None):
+            found.add(str(info[4][0]))
+    except OSError:
+        pass
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            found.add(sock.getsockname()[0])
+    except OSError:
+        pass
+    return found
+
+
+_AWS_PUBLIC_IP: object = Ellipsis
+
+
+def _aws_public_ipv4(timeout: float = 0.4) -> Optional[str]:
+    """Best-effort IMDS lookup so we can detect hairpin NAT to this instance's EIP."""
+    global _AWS_PUBLIC_IP
+    if _AWS_PUBLIC_IP is not Ellipsis:
+        return _AWS_PUBLIC_IP  # type: ignore[return-value]
+    try:
+        req = urllib.request.Request(
+            "http://169.254.169.254/latest/api/token",
+            method="PUT",
+            headers={"X-aws-ec2-metadata-token-ttl-seconds": "60"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            token = resp.read().decode("ascii", errors="ignore").strip()
+        ip_req = urllib.request.Request(
+            "http://169.254.169.254/latest/meta-data/public-ipv4",
+            headers={"X-aws-ec2-metadata-token": token} if token else {},
+        )
+        with urllib.request.urlopen(ip_req, timeout=timeout) as resp:
+            ip = resp.read().decode("ascii", errors="ignore").strip()
+        _AWS_PUBLIC_IP = ip or None
+    except (OSError, urllib.error.URLError, TimeoutError, ValueError):
+        _AWS_PUBLIC_IP = None
+    return _AWS_PUBLIC_IP  # type: ignore[return-value]
+
+
+def is_this_machine(host: str) -> bool:
+    host = normalize_host(host)
+    if not host:
+        return False
+    locals_ = _local_ipv4s()
+    pub = _aws_public_ipv4()
+    if pub:
+        locals_.add(normalize_host(pub))
+    return host in {normalize_host(x) for x in locals_}
+
+
+def _tcp_ok(host: str, port: int, timeout: float) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def check_target_reachable(scenario: ScenarioSpec, timeout: float = 3.0) -> PreflightCheck:
+    host, port = scenario.host, scenario.port
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return PreflightCheck(name="target_reachable", ok=True, detail=f"{host}:{port} TCP 연결 성공", blocking=False)
     except OSError as e:
-        return PreflightCheck(name="target_reachable", ok=False, detail=f"{scenario.host}:{scenario.port} 연결 실패: {e}", blocking=False)
+        detail = f"{host}:{port} 연결 실패: {e}"
+        if is_this_machine(host) and host not in ("localhost", "127.0.0.1", "::1"):
+            if _tcp_ok("127.0.0.1", port, timeout):
+                detail += (
+                    f" — 이 머신의 공인/로컬 주소로 보이며 localhost:{port} 는 연결됩니다. "
+                    "AWS 공인 IP는 인스턴스 자신에서 헤어핀 NAT로 타임아웃되는 경우가 많습니다. "
+                    "속성 오버라이드에 `target.host=localhost` 를 넣거나 시나리오 호스트를 localhost 로 바꾸세요."
+                )
+            else:
+                detail += (
+                    f" localhost:{port} 도 실패했습니다. Tomcat이 해당 포트에서 듣고 있는지 확인하세요."
+                )
+        else:
+            detail += (
+                " (보안그룹/방화벽에서 이 부하기 → WAS HTTP 포트 접근이 막혀 있을 수 있습니다. "
+                "SSH(22)가 열려 있어도 8080/8443 은 별도 허용이 필요합니다.)"
+            )
+        return PreflightCheck(name="target_reachable", ok=False, detail=detail, blocking=False)
 
 
-def check_allowed_host(scenario: ScenarioSpec, settings: Settings) -> PreflightCheck:
+def check_allowed_host(scenario: ScenarioSpec, settings: Settings, diagnosed_host: Optional[str] = None) -> PreflightCheck:
     allowed = settings.allowed_hosts()
     ok = host_allowed(scenario.host, allowed)
-    return PreflightCheck(
-        name="allowed_host", ok=ok,
-        detail=f"{scenario.host} {'허용 목록에 있음' if ok else '허용 목록에 없음 (config/allowed_hosts.txt 에 추가 필요)'}",
-        blocking=True,
-    )
+    if ok:
+        detail = f"{scenario.host} 허용 목록에 있음"
+    elif diagnosed_host and hosts_equivalent(scenario.host, diagnosed_host):
+        ok = True
+        detail = f"{scenario.host} 이 Run에서 SSH 진단한 대상이라 허용"
+    else:
+        detail = f"{scenario.host} 허용 목록에 없음 (실행 화면에서 추가하거나 config/allowed_hosts.txt 에 넣으세요)"
+    return PreflightCheck(name="allowed_host", ok=ok, detail=detail, blocking=True)
 
 
 def check_load_capacity(plan: LoadPlan, settings: Settings) -> PreflightCheck:
@@ -72,14 +165,21 @@ def check_load_capacity(plan: LoadPlan, settings: Settings) -> PreflightCheck:
     )
 
 
-def preflight_checks(scenario: ScenarioSpec, plan: LoadPlan, mode: str, validation_ok: bool, settings: Optional[Settings] = None) -> list[PreflightCheck]:
+def preflight_checks(
+    scenario: ScenarioSpec,
+    plan: LoadPlan,
+    mode: str,
+    validation_ok: bool,
+    settings: Optional[Settings] = None,
+    diagnosed_host: Optional[str] = None,
+) -> list[PreflightCheck]:
     settings = settings or get_settings()
     checks: list[PreflightCheck] = []
     if mode == "docker":
         checks.append(check_docker(settings))
     else:
         checks.append(check_jmeter_version(settings))
-    checks.append(check_allowed_host(scenario, settings))
+    checks.append(check_allowed_host(scenario, settings, diagnosed_host=diagnosed_host))
     checks.append(check_target_reachable(scenario))
     checks.append(check_load_capacity(plan, settings))
     checks.append(PreflightCheck(name="jmx_validated", ok=validation_ok, detail="JMX 3단계 검증 통과" if validation_ok else "JMX 검증 실패", blocking=True))

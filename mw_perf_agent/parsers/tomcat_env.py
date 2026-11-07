@@ -34,6 +34,9 @@ _PATTERNS: dict[str, list[re.Pattern]] = {
 _XMX = re.compile(r"-Xmx(\d+)([kKmMgG]?)")
 _XMS = re.compile(r"-Xms(\d+)([kKmMgG]?)")
 _GC = re.compile(r"-XX:\+Use(G1GC|ParallelGC|ConcMarkSweepGC|ZGC|ShenandoahGC|SerialGC)")
+_SKIP_PORT_LINE = re.compile(r"jmxremote|rmi\.|shutdown|redirectPort|debug\.port|\bajp\b", re.I)
+_PREFER_PORT_LINE = re.compile(r"tomcat\.connector\.port|connector\.port|http\.port|https\.port", re.I)
+_HTTP_PORTS = {80, 443, 8000, 8008, 8080, 8081, 8443, 8888, 9090}
 
 
 def _to_mb(num: str, unit: str) -> int:
@@ -62,6 +65,17 @@ def _scan(text: str, patterns: list[re.Pattern]) -> list[tuple[str, str]]:
     return hits
 
 
+def _pick_tomcat_port(hits: list[tuple[str, str]]) -> tuple[Optional[tuple[int, str]], bool]:
+    """Prefer HTTP connector ports over JMX/shutdown/AJP so the first match is not 1099."""
+    usable = [(v, ev) for v, ev in hits if not _SKIP_PORT_LINE.search(ev)]
+    pool = usable or hits
+    preferred = [(v, ev) for v, ev in pool if _PREFER_PORT_LINE.search(ev)]
+    httpish = [(v, ev) for v, ev in pool if int(v) in _HTTP_PORTS]
+    chosen = preferred or httpish or pool
+    values = {v for v, _ in chosen}
+    return (int(chosen[0][0]), chosen[0][1]), len(values) > 1
+
+
 def parse_tomcat_env(text: str) -> tuple[Found, list[str]]:
     """Return (found, conflicts). A conflict is a field that matched several
     distinct values; the first match wins but confidence is penalised."""
@@ -73,6 +87,14 @@ def parse_tomcat_env(text: str) -> tuple[Found, list[str]]:
     for field, pats in _PATTERNS.items():
         hits = _scan(text, pats)
         if not hits:
+            continue
+        if field == "tomcat_port":
+            picked, conflicted = _pick_tomcat_port(hits)
+            if picked is None:
+                continue
+            found[field] = picked
+            if conflicted:
+                conflicts.append(field)
             continue
         values = {v for v, _ in hits}
         if len(values) > 1:

@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from config.settings import get_settings
+from config.settings import get_settings, normalize_host
 from model.schemas import Assertion, RequestSpec, ScenarioSpec
 from . import driver
 
@@ -19,14 +19,14 @@ KIND_LABELS = {
 }
 
 
-def _scenario_input_form(run_id: str) -> dict | None:
+def _scenario_input_form(run_id: str, default_host: str = "localhost", default_port: int = 8080) -> dict | None:
     s = get_settings()
     kinds = list(KIND_LABELS)
     kind = st.radio("입력 소스", kinds, format_func=lambda k: KIND_LABELS[k], horizontal=True,
                     help="URL 외 소스는 LLM(llm_design_scenario)이 ScenarioSpec을 설계합니다. LLM이 없으면 빈 템플릿을 직접 채웁니다.")
     c1, c2, c3 = st.columns([3, 1, 1])
-    host = c1.text_input("대상 호스트 (LLM이 바꿀 수 없음)", value="localhost")
-    port = c2.number_input("포트", 1, 65535, 8080)
+    host = c1.text_input("대상 호스트 (LLM이 바꿀 수 없음)", value=default_host or "localhost")
+    port = c2.number_input("포트", 1, 65535, int(default_port or 8080))
     protocol = c3.selectbox("프로토콜", ["http", "https"])
     payload, method, body, headers = "", None, None, {}
     if kind == "url":
@@ -119,7 +119,13 @@ def render(graph) -> None:
             st.warning("Tab1에서 플랜을 승인하면 시나리오를 입력할 수 있습니다.")
             return
         st.subheader("시나리오 입력")
-        si = _scenario_input_form(run_id)
+        ti = vals.get("target_info")
+        cfg = vals.get("parsed_config")
+        raw_host = (ti.get("host") if isinstance(ti, dict) else getattr(ti, "host", None)) or ""
+        default_host = normalize_host(raw_host) or "localhost"
+        raw_port = (cfg.get("tomcat_port") if isinstance(cfg, dict) else getattr(cfg, "tomcat_port", None)) if cfg else None
+        default_port = int(raw_port or 8080)
+        si = _scenario_input_form(run_id, default_host=default_host, default_port=default_port)
         if st.button("🧩 시나리오 생성", type="primary"):
             if si["kind"] == "url" and not si["payload"]:
                 st.warning("URL을 입력하세요.")
