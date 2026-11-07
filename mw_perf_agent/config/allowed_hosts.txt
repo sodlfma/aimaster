@@ -1,0 +1,4 @@
+# One host per line. Glob patterns are allowed (e.g. *.dev.example.com).
+# Empty file (only comments) means: allow nothing except localhost/127.0.0.1.
+localhost
+127.0.0.1
