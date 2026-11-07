@@ -4,8 +4,12 @@
 
 ## 실행
 
+Python 3.10 이상이 필요합니다 (langgraph/langchain 1.x 요구사항, 3.11·3.12 권장).
+
 ```bash
 cd mw_perf_agent
+python3.11 -m venv .venv && source .venv/bin/activate   # Amazon Linux 2023 기본 python3는 3.9이므로 버전을 명시
+pip install -U pip
 pip install -r requirements.txt
 streamlit run app.py
 ```

@@ -1,3 +1,7 @@
+# Requires Python >= 3.10 (langgraph 1.x / langchain 1.x). On Python 3.9 pip fails with
+# "Ignored the following yanked versions ... require a different python version".
+# Amazon Linux 2023's default python3 is 3.9: create the venv with python3.11 instead.
+
 # Core orchestration (spec §2.2 / §9.2)
 langgraph>=1.0,<2
 langgraph-checkpoint-sqlite>=3.0
