@@ -14,8 +14,13 @@ def render_sidebar(graph) -> None:
 
     with st.sidebar.expander("LLM", expanded=True):
         model = st.text_input("모델 (provider:model)", value=s.llm_model, placeholder="openai:gpt-4o / anthropic:claude-3-5-sonnet-latest",
-                              help="LangChain init_chat_model 형식. 사내 OpenAI 호환 API는 openai:<model> + Base URL")
-        base_url = st.text_input("Base URL (옵션)", value=s.llm_base_url or "")
+                              help="LangChain init_chat_model 형식. 사내 OpenAI 호환 API는 openai:<모델명> + Base URL")
+        base_url = st.text_input(
+            "Base URL (옵션)",
+            value=s.llm_base_url or "",
+            placeholder="http://127.0.0.1:11434/v1",
+            help="OpenAI 호환 서버는 /v1 까지만. /chat/completions 를 붙이면 HTTP 405 가 납니다.",
+        )
         api_key = st.text_input("API Key", value=s.llm_api_key or "", type="password")
         enabled = st.toggle("LLM 사용", value=s.llm_enabled and bool(model))
         interpret = st.toggle("LLM 해석 리포트 (LLM-02)", value=s.interpret_enabled)
