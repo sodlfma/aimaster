@@ -59,13 +59,23 @@
           </elementProp>
 {%- else %}
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
-            <collectionProp name="Arguments.arguments"/>
+            <collectionProp name="Arguments.arguments">
+{%- for name, value in req.path | http_query %}
+              <elementProp name="{{ name | e }}" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                <stringProp name="Argument.value">{{ value | e }}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+                <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                <stringProp name="Argument.name">{{ name | e }}</stringProp>
+              </elementProp>
+{%- endfor %}
+            </collectionProp>
           </elementProp>
 {%- endif %}
           <stringProp name="HTTPSampler.protocol">${__P(target.protocol,{{ scenario.protocol }})}</stringProp>
           <stringProp name="HTTPSampler.domain">${__P(target.host,{{ scenario.host | e }})}</stringProp>
           <stringProp name="HTTPSampler.port">${__P(target.port,{{ scenario.port }})}</stringProp>
-          <stringProp name="HTTPSampler.path">{{ req.path | e }}</stringProp>
+          <stringProp name="HTTPSampler.path">{{ (req.path if req.body else (req.path | http_path)) | e }}</stringProp>
           <stringProp name="HTTPSampler.method">{{ req.method }}</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>

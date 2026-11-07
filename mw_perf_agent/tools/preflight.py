@@ -9,9 +9,12 @@ import subprocess
 import urllib.error
 import urllib.request
 from typing import Optional
+from urllib.parse import quote
 
 from config.settings import Settings, get_settings, normalize_host
-from model.schemas import LoadPlan, PreflightCheck, ScenarioSpec
+from model.schemas import LoadPlan, PreflightCheck, ScenarioSpec, RequestSpec
+
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 _VER = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
 
@@ -116,19 +119,127 @@ def _tcp_ok(host: str, port: int, timeout: float) -> bool:
         return False
 
 
-def check_target_reachable(scenario: ScenarioSpec, timeout: float = 3.0) -> PreflightCheck:
-    host, port = scenario.host, scenario.port
+def scenario_request_path(scenario: ScenarioSpec) -> str:
+    req: Optional[RequestSpec] = scenario.requests[0] if scenario.requests else None
+    path = (req.path if req else "/") or "/"
+    if not path.startswith("/"):
+        path = "/" + path
+    return path
+
+
+def http_status(protocol: str, host: str, port: int, path: str, timeout: float = 3.0) -> tuple[Optional[int], str]:
+    """GET the scenario URL. Returns (status, body-or-error). status is None on connect failure."""
+    path = path or "/"
+    url = f"{protocol}://{host}:{port}{path}"
+    try:
+        req = urllib.request.Request(url, method="GET", headers={"Accept": "application/json, */*;q=0.8"})
+        ctx = None
+        if protocol == "https":
+            import ssl
+            ctx = ssl._create_unverified_context()
+        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+            body = resp.read(240).decode("utf-8", errors="replace")
+            return int(resp.status), body
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read(240).decode("utf-8", errors="replace") if e.fp else ""
+        except Exception:  # noqa: BLE001
+            body = ""
+        return int(e.code), body
+    except Exception as e:  # noqa: BLE001
+        return None, f"{type(e).__name__}: {e}"
+
+
+def generator_identity() -> str:
+    """Describe this load-generator instance so SG rules can allow it."""
+    pub = _aws_public_ipv4()
+    priv = sorted(
+        {normalize_host(x) for x in _local_ipv4s()}
+        - LOOPBACK_HOSTS - {"0.0.0.0", ""}
+    )
+    bits = []
+    if pub:
+        bits.append(f"공인 IP {pub}")
+    if priv:
+        bits.append("사설 IP " + ", ".join(priv))
+    return " / ".join(bits) or "이 부하기"
+
+
+def resolve_load_target(
+    scenario: ScenarioSpec,
+    mode: str = "local",
+    overrides: Optional[dict] = None,
+    extra_hosts: Optional[list[str]] = None,
+    timeout: float = 1.5,
+) -> tuple[str, int, str, dict, list[str]]:
+    """Host/port/protocol JMeter should actually hit, plus merged -J overrides.
+
+    Same-instance public IPv4 uses loopback (hairpin NAT). Different EC2s in the
+    same VPC fall back to a diagnosed private IP when the public IP is filtered.
+    Never send traffic to localhost just because something is listening there.
+    """
+    merged = {str(k): str(v) for k, v in (overrides or {}).items()}
+    notes: list[str] = []
+    host = normalize_host(merged.get("target.host", scenario.host)) or scenario.host
+    try:
+        port = int(merged.get("target.port", scenario.port))
+    except (TypeError, ValueError):
+        port = int(scenario.port)
+    protocol = (merged.get("target.protocol", scenario.protocol) or "http").lower()
+    if protocol not in ("http", "https"):
+        protocol = "http"
+
+    if mode not in ("local", "docker") or host in LOOPBACK_HOSTS or "target.host" in (overrides or {}):
+        return host, port, protocol, merged, notes
+
+    if is_this_machine(host) and _tcp_ok("127.0.0.1", port, timeout):
+        merged["target.host"] = "localhost"
+        notes.append(
+            f"{host}:{port} 는 이 부하기 자신입니다. 공인 IP 헤어핀 NAT는 Tomcat까지 패킷이 안 가서 "
+            f"access log가 비고 JMeter 에러율 100%가 됩니다. 대상은 localhost:{port} 로 보냅니다."
+        )
+        return "localhost", port, protocol, merged, notes
+
+    if _tcp_ok(host, port, timeout):
+        return host, port, protocol, merged, notes
+
+    seen = {host}
+    for cand in extra_hosts or []:
+        alt = normalize_host(cand)
+        if not alt or alt in seen or alt in LOOPBACK_HOSTS:
+            continue
+        seen.add(alt)
+        if _tcp_ok(alt, port, timeout):
+            merged["target.host"] = alt
+            notes.append(
+                f"{host}:{port} 는 이 부하기에서 막혀 있고, 대상 사설 IP {alt}:{port} 는 열립니다. "
+                f"같은 VPC면 공인 IP 대신 사설 IP로 보냅니다 (JMeter 대상 {alt})."
+            )
+            return alt, port, protocol, merged, notes
+    return host, port, protocol, merged, notes
+
+
+def check_target_reachable(
+    scenario: ScenarioSpec,
+    timeout: float = 3.0,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+) -> PreflightCheck:
+    host = host if host is not None else scenario.host
+    port = int(port if port is not None else scenario.port)
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return PreflightCheck(name="target_reachable", ok=True, detail=f"{host}:{port} TCP 연결 성공", blocking=False)
     except OSError as e:
+        ident = generator_identity()
         detail = f"{host}:{port} 연결 실패: {e}"
-        if is_this_machine(host) and host not in ("localhost", "127.0.0.1", "::1"):
+        orig = scenario.host
+        if is_this_machine(orig) and orig not in LOOPBACK_HOSTS:
             if _tcp_ok("127.0.0.1", port, timeout):
                 detail += (
                     f" — 이 머신의 공인/로컬 주소로 보이며 localhost:{port} 는 연결됩니다. "
                     "AWS 공인 IP는 인스턴스 자신에서 헤어핀 NAT로 타임아웃되는 경우가 많습니다. "
-                    "속성 오버라이드에 `target.host=localhost` 를 넣거나 시나리오 호스트를 localhost 로 바꾸세요."
+                    "실행 시 대상을 localhost 로 자동 전환합니다."
                 )
             else:
                 detail += (
@@ -136,10 +247,50 @@ def check_target_reachable(scenario: ScenarioSpec, timeout: float = 3.0) -> Pref
                 )
         else:
             detail += (
-                " (보안그룹/방화벽에서 이 부하기 → WAS HTTP 포트 접근이 막혀 있을 수 있습니다. "
-                "SSH(22)가 열려 있어도 8080/8443 은 별도 허용이 필요합니다.)"
+                f" 이 부하기({ident})에서 대상 HTTP 포트로 나가지 못합니다. "
+                "노트북 브라우저만 되고 부하기 EC2에서 실패하며 access log가 비면 "
+                "대상 보안그룹이 부하기의 8080/8443 인바운드를 허용하지 않은 것입니다. "
+                f"SSH(22)와 HTTP({port})는 별개입니다. 대상 SG에 이 부하기 사설 IP/보안그룹 → {port}/tcp 를 허용하거나, "
+                "같은 VPC면 시나리오 호스트를 대상 사설 IP로 바꾸세요."
             )
-        return PreflightCheck(name="target_reachable", ok=False, detail=detail, blocking=False)
+        return PreflightCheck(
+            name="target_reachable", ok=False, detail=detail,
+            blocking=host not in LOOPBACK_HOSTS,
+        )
+
+
+def check_http_probe(
+    scenario: ScenarioSpec,
+    host: str,
+    port: int,
+    protocol: str,
+    timeout: float = 3.0,
+) -> PreflightCheck:
+    path = scenario_request_path(scenario)
+    # Encode only the path segment before '?' so the query string stays intact.
+    if "?" in path:
+        p, qs = path.split("?", 1)
+        url_path = quote(p, safe="/") + "?" + qs
+    else:
+        url_path = quote(path, safe="/")
+    url = f"{protocol}://{host}:{port}{path}"
+    code, detail = http_status(protocol, host, port, url_path, timeout=timeout)
+    if code is None:
+        return PreflightCheck(
+            name="http_probe", ok=False, blocking=host not in LOOPBACK_HOSTS,
+            detail=(
+                f"{url} 연결 실패: {detail}. "
+                f"이 부하기({generator_identity()})에서 WAS에 도달하지 못해 access log가 비고 에러율 100%가 됩니다. "
+                "대상 보안그룹에 부하기 → HTTP 포트 인바운드를 허용하세요."
+            ),
+        )
+    snippet = " ".join(detail.split())[:100]
+    ok = 200 <= code < 400
+    hint = "" if ok else " — 이 상태면 부하 실행 시 에러율이 매우 높아집니다."
+    return PreflightCheck(
+        name="http_probe", ok=ok, blocking=False,
+        detail=f"{url} → HTTP {code} {snippet}{hint}",
+    )
 
 
 def check_allowed_host(scenario: ScenarioSpec, settings: Settings, diagnosed_host: Optional[str] = None) -> PreflightCheck:
@@ -172,15 +323,32 @@ def preflight_checks(
     validation_ok: bool,
     settings: Optional[Settings] = None,
     diagnosed_host: Optional[str] = None,
+    overrides: Optional[dict] = None,
+    extra_hosts: Optional[list[str]] = None,
+    rewrite_notes: Optional[list[str]] = None,
 ) -> list[PreflightCheck]:
     settings = settings or get_settings()
+    host, port, protocol, _merged, auto_notes = resolve_load_target(
+        scenario, mode, overrides, extra_hosts=extra_hosts,
+    )
+    notes = rewrite_notes if rewrite_notes is not None else auto_notes
     checks: list[PreflightCheck] = []
     if mode == "docker":
         checks.append(check_docker(settings))
     else:
         checks.append(check_jmeter_version(settings))
     checks.append(check_allowed_host(scenario, settings, diagnosed_host=diagnosed_host))
-    checks.append(check_target_reachable(scenario))
+    if notes:
+        checks.append(PreflightCheck(name="load_target", ok=True, detail=" ".join(notes), blocking=False))
+    tcp = check_target_reachable(scenario, host=host, port=port)
+    checks.append(tcp)
+    if tcp.ok:
+        checks.append(check_http_probe(scenario, host, port, protocol))
+    else:
+        checks.append(PreflightCheck(
+            name="http_probe", ok=False, blocking=False,
+            detail=f"TCP 실패로 HTTP 프로브 생략 ({host}:{port}). 요청이 WAS에 도달하지 않으면 access log가 비고 에러율 100%가 됩니다.",
+        ))
     checks.append(check_load_capacity(plan, settings))
     checks.append(PreflightCheck(name="jmx_validated", ok=validation_ok, detail="JMX 3단계 검증 통과" if validation_ok else "JMX 검증 실패", blocking=True))
     return checks

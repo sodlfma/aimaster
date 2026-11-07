@@ -26,6 +26,7 @@ class TargetInfo(BaseModel):
     apache_home: Optional[str] = None
     tomcat_home: Optional[str] = None
     instances: list[str] = Field(default_factory=list)
+    private_ips: list[str] = Field(default_factory=list)
 
 
 class ParsedConfig(BaseModel):
