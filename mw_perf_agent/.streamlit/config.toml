@@ -1,0 +1,16 @@
+# EC2/원격 접속에서 초기 로딩 화면이 끝나지 않는 문제를 막는다.
+# 1) .venv·runs를 감시하면 inotify 한도(기본 8192)를 넘겨 서버가 멈추거나 계속 재시작한다.
+# 2) 공인 IP로 직접 접속하면 CORS/XSRF 검사가 WebSocket(/_stcore/stream)을 거절하고
+#    브라우저가 "Please wait" 스피너에 남는다. 보안 그룹으로 접근을 제한하는 전제.
+[server]
+headless = true
+address = "0.0.0.0"
+port = 8501
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+fileWatcherType = "none"
+folderWatchBlacklist = [".venv", "runs", "__pycache__"]
+
+[browser]
+gatherUsageStats = false

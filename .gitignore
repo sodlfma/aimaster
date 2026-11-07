@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+mw_perf_agent/runs/
+*.sqlite
+*.sqlite-journal
+.streamlit/secrets.toml
