@@ -14,11 +14,27 @@ from tools.preflight import preflight_checks, resolve_load_target
 from ..state import PerfAgentState
 
 
-def _diagnosed_host(state: PerfAgentState) -> Optional[str]:
+def _target_info(state: PerfAgentState):
     target = state.get("target_info")
+    if isinstance(target, dict):
+        return target
+    return target
+
+
+def _diagnosed_host(state: PerfAgentState) -> Optional[str]:
+    target = _target_info(state)
     if isinstance(target, dict):
         return target.get("host")
     return getattr(target, "host", None) if target is not None else None
+
+
+def _extra_hosts(state: PerfAgentState) -> list[str]:
+    target = _target_info(state)
+    if target is None:
+        return []
+    if isinstance(target, dict):
+        return list(target.get("private_ips") or [])
+    return list(getattr(target, "private_ips", None) or [])
 
 
 def _merged_overrides(state: PerfAgentState) -> tuple[dict, dict, list[str]]:
@@ -26,6 +42,7 @@ def _merged_overrides(state: PerfAgentState) -> tuple[dict, dict, list[str]]:
     user = dict(opts.get("jmeter_overrides") or {})
     _host, _port, _proto, merged, notes = resolve_load_target(
         state["scenario_spec"], state.get("run_mode", "local"), user,
+        extra_hosts=_extra_hosts(state),
     )
     opts["jmeter_overrides"] = merged
     return opts, merged, notes
@@ -38,6 +55,7 @@ def preflight(state: PerfAgentState) -> dict:
         validation_ok=state["validation"].ok if state.get("validation") else False,
         diagnosed_host=_diagnosed_host(state),
         overrides=merged,
+        extra_hosts=_extra_hosts(state),
         rewrite_notes=notes,
     )
     blocked = [c.name for c in checks if c.blocking and not c.ok]

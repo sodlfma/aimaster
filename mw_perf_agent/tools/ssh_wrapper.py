@@ -430,6 +430,59 @@ def fetch_from_homes(
     return configs
 
 
+_IPV4_RE = re.compile(
+    r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b"
+)
+PRIVATE_IP_REMOTE = "hostname -I"
+
+
+def parse_ipv4s(text: str) -> list[str]:
+    """Extract global IPv4s, skipping loopback and link-local."""
+    seen: list[str] = []
+    for ip in _IPV4_RE.findall(text or ""):
+        if ip.startswith("127.") or ip.startswith("169.254.") or ip.startswith("0."):
+            continue
+        if ip not in seen:
+            seen.append(ip)
+    return seen
+
+
+def fetch_private_ips(
+    host: str,
+    timeout: int = 8,
+    ssh_wrapper_cmd: Optional[str] = None,
+) -> list[str]:
+    """Best-effort: ask the diagnosed host for its VPC/private IPv4 addresses.
+
+    Only the built-in OpenSSH path is used (in-house wrappers are `cat {path}`).
+    Failures are ignored so diagnosis still succeeds.
+    """
+    if ssh_wrapper_cmd is not None:
+        tmpl = effective_ssh_wrapper_cmd(ssh_wrapper_cmd)
+        if tmpl and tmpl != DEFAULT_SSH_WRAPPER_CMD:
+            return []
+    elif not uses_builtin_openssh():
+        return []
+    try:
+        cmd = build_ssh_argv(host, "/", remote_command=PRIVATE_IP_REMOTE)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            shell=False,
+            env=ssh_exec_env(),
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if proc.returncode != 0:
+        return []
+    host_ok, _ = parse_user_host(host)
+    return [ip for ip in parse_ipv4s(proc.stdout or "") if ip != host_ok]
+
+
 def collect_gc_stats_cmd(host: str, pid: int, interval_ms: int, count: int) -> list[str]:
     parse_user_host(host)
     remote = f"jstat -gcutil {int(pid)} {int(interval_ms)} {int(count)}"

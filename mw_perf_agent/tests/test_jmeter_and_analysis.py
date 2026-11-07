@@ -154,7 +154,7 @@ def test_failure_snapshot_connect_timeout(tmp_path):
     )
     snap = failure_snapshot(p)
     assert "ConnectException" in snap["hint"] or "Non HTTP" in snap["hint"]
-    assert "localhost" in snap["hint"]
+    assert "보안그룹" in snap["hint"]
     assert snap["samples"]
 
 

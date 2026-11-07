@@ -108,7 +108,7 @@ def render(graph) -> None:
                     st.rerun()
             reachable = next((c for c in pf if c.name == "target_reachable"), None)
             if reachable and not reachable.ok:
-                st.info(reachable.detail)
+                st.error(reachable.detail)
             load_t = next((c for c in pf if c.name == "load_target"), None)
             if load_t:
                 st.success(load_t.detail)

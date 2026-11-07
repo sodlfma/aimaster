@@ -86,7 +86,10 @@ def failure_snapshot(path: str | Path, limit: int = 5) -> dict:
     if msg:
         hint += f" ({msg})"
     if any("Non HTTP" in str(t["code"]) or "Connect" in str(t["code"]) for t in top) or "Connect" in msg or "timed out" in msg.lower():
-        hint += " — 요청이 WAS에 도달하지 않았습니다. 같은 머신이면 localhost 로 보내야 합니다."
+        hint += (
+            " — 요청이 WAS에 도달하지 않았습니다. 부하기와 대상이 다른 EC2이면 "
+            "대상 보안그룹에 부하기 → HTTP 포트 인바운드를 허용하세요. 같은 머신이면 localhost 로 보내야 합니다."
+        )
     return {"hint": hint, "samples": samples, "top_codes": top}
 
 

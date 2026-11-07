@@ -73,9 +73,11 @@ def test_target_reachable_firewall_hint(monkeypatch):
 
     monkeypatch.setattr("tools.preflight.socket.create_connection", _boom)
     monkeypatch.setattr("tools.preflight.is_this_machine", lambda host: False)
+    monkeypatch.setattr("tools.preflight._aws_public_ipv4", lambda timeout=0.4: "52.1.2.3")
     chk = check_target_reachable(ScenarioSpec(host="3.35.11.139", port=8080), timeout=0.01)
-    assert not chk.ok and not chk.blocking
+    assert not chk.ok and chk.blocking
     assert "보안그룹" in chk.detail
+    assert "52.1.2.3" in chk.detail
 
 
 def test_target_reachable_hairpin_hint(monkeypatch):
@@ -131,6 +133,64 @@ def test_resolve_load_target_respects_user_override(monkeypatch):
     )
     assert host == "3.35.11.139" and "target.host" in merged
     assert notes == []
+
+
+def test_resolve_load_target_does_not_use_localhost_for_other_ec2(monkeypatch):
+    def _connect(addr, timeout=None):
+        host, _port = addr
+        if host in ("127.0.0.1", "localhost"):
+            class _Conn:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *exc):
+                    return False
+            return _Conn()
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("tools.preflight.socket.create_connection", _connect)
+    monkeypatch.setattr("tools.preflight.is_this_machine", lambda host: False)
+    spec = ScenarioSpec(host="3.35.11.139", port=8080)
+    host, _port, _proto, merged, notes = resolve_load_target(spec, "local", {}, timeout=0.01)
+    assert host == "3.35.11.139"
+    assert "target.host" not in merged
+    assert notes == []
+
+
+def test_resolve_load_target_uses_private_ip_when_public_filtered(monkeypatch):
+    def _connect(addr, timeout=None):
+        host, _port = addr
+        if host == "10.0.1.20":
+            class _Conn:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *exc):
+                    return False
+            return _Conn()
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("tools.preflight.socket.create_connection", _connect)
+    monkeypatch.setattr("tools.preflight.is_this_machine", lambda host: False)
+    spec = ScenarioSpec(host="3.35.11.139", port=8080)
+    host, port, _proto, merged, notes = resolve_load_target(
+        spec, "local", {}, extra_hosts=["10.0.1.20"], timeout=0.01,
+    )
+    assert (host, port) == ("10.0.1.20", 8080)
+    assert merged["target.host"] == "10.0.1.20"
+    assert notes and "사설 IP" in notes[0]
+
+
+def test_preflight_blocks_unreachable_remote(isolated_settings, monkeypatch):
+    def _boom(*a, **k):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("tools.preflight.socket.create_connection", _boom)
+    monkeypatch.setattr("tools.preflight.is_this_machine", lambda host: False)
+    spec = ScenarioSpec(host="3.35.11.139", port=8080)
+    checks = preflight_checks(spec, _plan(), "local", True, isolated_settings, diagnosed_host="3.35.11.139")
+    blocked = [c for c in checks if c.blocking and not c.ok]
+    assert any(c.name == "target_reachable" for c in blocked)
 
 
 def test_preflight_http_probe_and_rewrite_notes(isolated_settings, monkeypatch):
