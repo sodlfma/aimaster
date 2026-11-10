@@ -38,9 +38,11 @@ def _env_bool(key: str, default: bool) -> bool:
 @dataclass
 class Settings:
     # LLM
-    llm_model: str = os.environ.get("LLM_MODEL", "")  # e.g. "openai:gpt-4o", "anthropic:claude-3-5-sonnet-latest"
+    llm_model: str = os.environ.get("LLM_MODEL", "")  # e.g. "gpt-4.1", "openai:gpt-4o", "azure_openai:gpt-4.1"
     llm_base_url: Optional[str] = os.environ.get("LLM_BASE_URL") or None
     llm_api_key: Optional[str] = os.environ.get("LLM_API_KEY") or None
+    # Azure OpenAI 호환 게이트웨이(Talent Lab). 비우면 호스트·키 접두사로 기본 api-version 을 고른다.
+    llm_api_version: Optional[str] = os.environ.get("LLM_API_VERSION") or None
     llm_enabled: bool = _env_bool("LLM_ENABLED", bool(os.environ.get("LLM_MODEL")))
     llm_timeout_sec: int = int(os.environ.get("LLM_TIMEOUT_SEC", "60"))
     llm_max_context_tokens: int = int(os.environ.get("LLM_MAX_CONTEXT_TOKENS", "12000"))

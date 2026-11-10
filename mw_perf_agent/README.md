@@ -20,8 +20,8 @@ JMeter 없이도 번들 생성 + 외부 실행 결과(JTL) 업로드 분석(`bun
 
 | 변수 | 설명 | 기본값 |
 |---|---|---|
-| `LLM_MODEL` | LangChain `init_chat_model` 형식 (`openai:gpt-4o`, `anthropic:claude-3-5-sonnet-latest`) | (없음 → 오프라인) |
-| `LLM_BASE_URL` / `LLM_API_KEY` | OpenAI 호환 사내 API 등 | |
+| `LLM_MODEL` | 배포 이름 또는 `provider:model`. Talent Lab은 `gpt-4.1`처럼 허용 모델 이름을 그대로 씁니다. | (없음 → 오프라인) |
+| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_API_VERSION` | `atl-` 키는 Talent Lab(`https://skax.ai-talentlab.com`, 기본 api-version `2024-12-01-preview`, `api-key` 헤더). `/v1`로 끝나는 다른 주소는 OpenAI 호환 Chat Completions | |
 | `LLM_ENABLED` / `LLM_INTERPRET` / `LLM_MASK` | LLM 사용 / 해석 리포트 / 호스트·IP 마스킹 | `LLM_MODEL` 유무 / true / true |
 | `JMETER_HOME` 또는 `JMETER_BIN` | 로컬 JMeter | |
 | `JMETER_DOCKER_IMAGE`, `JMETER_REMOTE_HOSTS` | Docker / 분산(-R) 모드 | `justb4/jmeter:latest` / 없음 |
@@ -185,13 +185,18 @@ export JMETER_HOME=/opt/apache-jmeter
 export RUNS_DIR=/data/mw_perf_runs
 export ALLOWED_HOSTS_FILE="$HOME/aimaster/mw_perf_agent/config/allowed_hosts.txt"
 export MAX_LOCAL_THREADS=1000
-# LLM을 쓸 때만
-export LLM_MODEL=openai:gpt-4o
-export LLM_API_KEY=...
+# Talent Lab (atl- 키). Base URL을 비우면 https://skax.ai-talentlab.com 으로 호출합니다.
+# 경로는 /openai/deployments/{model}/chat/completions?api-version=2024-12-01-preview
+export LLM_MODEL=gpt-4.1
+export LLM_API_KEY=atl-...
+# export LLM_BASE_URL=https://skax.ai-talentlab.com
+# export LLM_API_VERSION=2024-12-01-preview
+# OpenAI 호환 게이트웨이(/v1/chat/completions)는 아래처럼 /v1 까지 적습니다.
+# export LLM_MODEL=openai:gpt-4o
 # export LLM_BASE_URL=https://사내-openai-호환-엔드포인트/v1
 ```
 
-`LLM_API_KEY` 대신 제공자 변수(`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)를 써도 됩니다. Bedrock은 `pip install langchain-aws` 후 `LLM_MODEL=bedrock_converse:...`로 두고, 키 대신 EC2 IAM 역할로 인증합니다.
+`atl-` 키는 OpenAI 공개 API 키가 아닙니다. Base URL이 비어 있거나 `api.openai.com`이어도 `https://skax.ai-talentlab.com/openai/deployments/{model}/chat/completions` 로 보내고, 헤더는 `api-key` 입니다. `LLM_API_KEY` 대신 `OPENAI_API_KEY` / `AZURE_OPENAI_API_KEY`에 `atl-` 키를 두어도 같은 경로로 보냅니다. 그 외 제공자 변수(`ANTHROPIC_API_KEY`)도 그대로 쓸 수 있습니다. Bedrock은 `pip install langchain-aws` 후 `LLM_MODEL=bedrock_converse:...`로 두고, 키 대신 EC2 IAM 역할로 인증합니다.
 
 `config/allowed_hosts.txt`의 기본값은 `localhost`, `127.0.0.1`뿐입니다. 부하를 줄 WAS의 호스트 또는 IP를 이 파일에 넣지 않으면 preflight에서 실행이 차단됩니다.
 

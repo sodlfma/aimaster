@@ -4,7 +4,7 @@ import streamlit as st
 
 from config.settings import allow_host, get_settings, update_settings
 from graph.build import mermaid
-from llm.models import llm_available
+from llm.models import llm_available, llm_init_error, llm_route_label
 from . import driver
 
 
@@ -13,21 +13,49 @@ def render_sidebar(graph) -> None:
     st.sidebar.header("⚙️ 설정")
 
     with st.sidebar.expander("LLM", expanded=True):
-        model = st.text_input("모델 (provider:model)", value=s.llm_model, placeholder="openai:gpt-4o / anthropic:claude-3-5-sonnet-latest",
-                              help="LangChain init_chat_model 형식. 사내 OpenAI 호환 API는 openai:<model> + Base URL")
+        model = st.text_input(
+            "모델 (provider:model)",
+            value=s.llm_model,
+            placeholder="gpt-4.1 / openai:gpt-4o / anthropic:claude-3-5-sonnet-latest",
+            help="Talent Lab은 허용 목록의 이름을 그대로 씁니다 (gpt-4.1, gpt-4o, …). OpenAI 호환 API는 openai:모델 + Base URL.",
+        )
         base_url = st.text_input(
             "Base URL (옵션)",
             value=s.llm_base_url or "",
-            help="OpenAI 호환 주소. /v1 로 끝나야 합니다. 호스트만 입력하면 /v1 을 붙이고, /chat/completions 나 /responses 로 끝나면 제거한 뒤 Chat Completions 로 호출합니다.",
+            placeholder="https://skax.ai-talentlab.com",
+            help="atl- 키는 비워 두면 https://skax.ai-talentlab.com 의 Azure 배포 경로로 호출합니다. 호스트만 적어도 /openai/deployments/{모델}/chat/completions 입니다. 다른 게이트웨이의 /v1 주소는 Chat Completions 로 호출합니다.",
         )
-        api_key = st.text_input("API Key", value=s.llm_api_key or "", type="password")
+        api_version = st.text_input(
+            "API version (Azure)",
+            value=s.llm_api_version or "",
+            placeholder="2024-12-01-preview",
+            help="Azure OpenAI api-version. Talent Lab은 비우면 2024-12-01-preview 를 사용합니다.",
+        )
+        api_key = st.text_input(
+            "API Key",
+            value=s.llm_api_key or "",
+            type="password",
+            help="Talent Lab 키는 atl- 로 시작합니다. api-key 헤더로 전달되며 api.openai.com 으로 보내지 않습니다.",
+        )
         enabled = st.toggle("LLM 사용", value=s.llm_enabled and bool(model))
         interpret = st.toggle("LLM 해석 리포트 (LLM-02)", value=s.interpret_enabled)
         mask = st.toggle("외부 전송 시 호스트/IP 마스킹", value=s.mask_enabled)
-        update_settings(llm_model=model.strip(), llm_base_url=base_url.strip() or None, llm_api_key=api_key.strip() or None,
-                        llm_enabled=enabled and bool(model.strip()), interpret_enabled=interpret, mask_enabled=mask)
+        update_settings(
+            llm_model=model.strip(),
+            llm_base_url=base_url.strip() or None,
+            llm_api_version=api_version.strip() or None,
+            llm_api_key=api_key.strip() or None,
+            llm_enabled=enabled and bool(model.strip()),
+            interpret_enabled=interpret,
+            mask_enabled=mask,
+        )
         if get_settings().llm_enabled:
-            st.caption("상태: " + ("✅ 모델 초기화 가능" if llm_available() else "⚠️ 모델 초기화 실패 (패키지/키 확인) → 규칙 기반 Fallback"))
+            if llm_available():
+                st.caption("상태: ✅ " + llm_route_label())
+            else:
+                err = llm_init_error()
+                detail = f" ({err})" if err else " (패키지/키 확인)"
+                st.caption("상태: ⚠️ 모델 초기화 실패" + detail + " → 규칙 기반 Fallback")
         else:
             st.caption("상태: 오프라인 모드 (규칙 기반 Fallback)")
 
