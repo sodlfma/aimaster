@@ -8,6 +8,7 @@ import streamlit as st
 
 from config.settings import allow_host, get_settings, update_settings
 from graph.nodes.diagnose import new_run_id
+from model.load_plan import SCENARIO_CATALOG
 from model.schemas import ParsedConfig, TargetInfo
 from tools.ssh_wrapper import (
     DEFAULT_SSH_PORT,
@@ -64,6 +65,85 @@ def _sample_raw(host: str, apache_path: str, tomcat_path: str) -> dict[str, str]
     return raw
 
 
+_SCENARIO_LABELS = {
+    "breakpoint": "1. 계층별 임계치 돌파 테스트 (현재 기본 모델)",
+    "spike": "2. 스파이크 테스트 (Spike Test)",
+    "sla": "3. 목표 SLA 검증 테스트 (Load / SLA Test)",
+}
+
+
+def _init_scenario_state(s) -> None:
+    if "diag_scenario_type" not in st.session_state:
+        initial = s.plan_scenario_type if s.plan_scenario_type in SCENARIO_CATALOG else "breakpoint"
+        st.session_state["diag_scenario_type"] = initial
+    if "diag_n_target" not in st.session_state:
+        st.session_state["diag_n_target"] = int(s.plan_n_target)
+    if "diag_spike_ramp" not in st.session_state:
+        st.session_state["diag_spike_ramp"] = min(3, max(1, int(s.plan_spike_ramp_sec)))
+
+
+def _render_scenario_picker(s) -> None:
+    """Choose which SC-001 load shape `build_load_plan` will emit."""
+    _init_scenario_state(s)
+    st.subheader("부하 시나리오 선택")
+    st.caption("진단으로 임계치를 구한 뒤, 여기서 고른 유형의 공식으로 동시 사용자·Ramp-up·Hold를 산출합니다.")
+    choice = st.selectbox(
+        "시나리오 유형",
+        options=list(_SCENARIO_LABELS.keys()),
+        format_func=lambda k: _SCENARIO_LABELS[k],
+        key="diag_scenario_type",
+    )
+    info = SCENARIO_CATALOG[choice]
+    st.markdown(
+        f"**목적** {info['purpose']}  \n"
+        f"**부하 패턴** {info['pattern']}  \n"
+        f"**기대 검증** {info['verification']}"
+    )
+    st.dataframe(
+        pd.DataFrame([{"산정 공식": line} for line in info["formulas"]]),
+        hide_index=True,
+        use_container_width=True,
+    )
+    n_target = int(st.session_state["diag_n_target"])
+    spike_ramp = int(st.session_state["diag_spike_ramp"])
+    if choice == "sla":
+        n_target = int(st.number_input(
+            "목표 동시접속자 N_target",
+            min_value=1,
+            max_value=100000,
+            step=10,
+            key="diag_n_target",
+            help="S1=0.5×N_target, S2=1.0×N_target, S3=1.2×N_target. N_target > T_db_lock 이면 사전 경고를 출력합니다.",
+        ))
+    elif choice == "spike":
+        spike_ramp = int(st.number_input(
+            "스파이크 Ramp-up (초)",
+            min_value=1,
+            max_value=3,
+            step=1,
+            key="diag_spike_ramp",
+            help="급등 구간만 1~3초이며 Hold는 30초로 고정됩니다. 평시·복귀 구간은 사이드바 Ramp-up 배율과 Hold를 사용합니다.",
+        ))
+    update_settings(
+        plan_scenario_type=choice,
+        plan_n_target=int(n_target),
+        plan_spike_ramp_sec=int(spike_ramp),
+    )
+
+
+def _plan_options(s) -> dict:
+    return {
+        "interpret": s.interpret_enabled,
+        "ramp_scale": s.plan_ramp_scale,
+        "hold_sec": s.plan_hold_sec,
+        "bucket_sec": s.bucket_sec,
+        "dry_run": True,
+        "scenario_type": s.plan_scenario_type,
+        "n_target": int(s.plan_n_target),
+        "spike_ramp_sec": int(s.plan_spike_ramp_sec),
+    }
+
+
 def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str, str] | None, target: TargetInfo) -> None:
     if not any(v.strip() for v in raw.values() if v):
         st.error("수집된 설정 원문이 비어 있습니다.")
@@ -80,13 +160,7 @@ def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str,
         "raw_inputs": raw,
         "target_info": target,
         "llm_enabled": s.llm_enabled,
-        "options": {
-            "interpret": s.interpret_enabled,
-            "ramp_scale": s.plan_ramp_scale,
-            "hold_sec": s.plan_hold_sec,
-            "bucket_sec": s.bucket_sec,
-            "dry_run": True,
-        },
+        "options": _plan_options(s),
     }
     with st.status("그래프 실행 중 (SC-001)…", expanded=True) as status:
         driver.drive_sync(graph, run_id, inp, status=status)
@@ -95,8 +169,8 @@ def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str,
 
 
 def render(graph) -> None:
-    st.header("1. 인프라 진단 및 4단계 부하 플랜 산출 (SC-001)")
-    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. SSH 사용자·비밀번호 또는 키로 서버에서 읽어 옵니다.")
+    st.header("1. 인프라 진단 및 부하 플랜 산출 (SC-001)")
+    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. SSH 사용자·비밀번호 또는 키로 서버에서 읽어 옵니다. 부하 형태는 아래 세 가지 시나리오 중 하나를 고릅니다.")
 
     s = get_settings()
     col1, col2, col3 = st.columns(3)
@@ -192,6 +266,8 @@ def render(graph) -> None:
         except Exception as extra_exc:
             st.caption(f"명령 미리보기 불가: {extra_exc}")
 
+    _render_scenario_picker(s)
+
     run_ssh, run_mock = st.columns(2)
     ssh_clicked = run_ssh.button("SSH로 설정 수집 및 진단", type="primary", use_container_width=True)
     mock_clicked = run_mock.button("샘플(Mock)로 미리보기", use_container_width=True)
@@ -256,7 +332,7 @@ def render(graph) -> None:
 
     run_id = st.session_state.get("run_id")
     if not run_id:
-        st.info("호스트와 경로를 입력한 뒤 SSH로 설정을 수집하면 임계치와 4단계 플랜이 산출됩니다.")
+        st.info("호스트와 경로를 입력하고 시나리오를 고른 뒤 SSH로 설정을 수집하면 임계치와 부하 플랜이 산출됩니다.")
         return
 
     snap = driver.snapshot(graph, run_id)
@@ -294,8 +370,15 @@ def render(graph) -> None:
             else:
                 data[r["field"]] = int(float(v))
                 data["evidence"][r["field"]] = cfg.evidence.get(r["field"]) or "(사용자 수정)"
+        opts = dict(vals.get("options") or {})
+        opts.update(_plan_options(s))
         with st.status("재계산 중…", expanded=True) as status:
-            driver.update_and_continue(graph, run_id, {"parsed_config": ParsedConfig(**data)}, as_node="merge_validate", status=status)
+            driver.update_and_continue(
+                graph, run_id,
+                {"parsed_config": ParsedConfig(**data), "options": opts},
+                as_node="merge_validate",
+                status=status,
+            )
         st.rerun()
 
     st.subheader("📊 3계층 병목 임계치")
@@ -305,15 +388,55 @@ def render(graph) -> None:
     m3.metric("HTTP 503 Drop 임계치", f"{thr.t_drop} Req", help=thr.formulas.get("t_drop"))
     m4.metric("Web 용량 (보조)", f"{thr.web_cap or '-'}", help=thr.formulas.get("web_cap_note") or thr.formulas.get("web_cap"))
 
-    st.subheader("📈 4단계 부하 플랜")
-    plan_df = pd.DataFrame([s.model_dump() for s in plan.steps])
-    plan_edit = st.data_editor(plan_df, hide_index=True, use_container_width=True, disabled=["name", "expected_symptom"],
-                               key=f"plan_editor_{run_id}", column_config={
-                                   "target_concurrency": st.column_config.NumberColumn("동시 사용자", min_value=1, step=1),
-                                   "ramp_up_sec": st.column_config.NumberColumn("Ramp-up(s)", min_value=1, step=1),
-                                   "hold_sec": st.column_config.NumberColumn("Hold(s)", min_value=1, step=1)})
+    plan_title = plan.scenario_label or "부하 플랜"
+    st.subheader(f"📈 {plan_title} ({len(plan.steps)}단계)")
+    if plan.purpose:
+        st.caption(f"목적: {plan.purpose}")
+    if plan.verification_points:
+        st.caption("기대 검증: " + " ".join(plan.verification_points))
+    if plan.scenario_type == "sla" and plan.n_target:
+        st.caption(f"N_target = {plan.n_target}")
+    seen_warnings: list[str] = []
+    for warning in vals.get("warnings") or []:
+        text = str(warning)
+        if text in seen_warnings:
+            continue
+        seen_warnings.append(text)
+        if text.startswith("사전 경고"):
+            st.warning(text)
+    plan_df = pd.DataFrame([step.model_dump() for step in plan.steps])
+    plan_sig = "-".join(str(step.target_concurrency) for step in plan.steps)
+    plan_edit = st.data_editor(
+        plan_df,
+        hide_index=True,
+        use_container_width=True,
+        disabled=["name", "expected_symptom"],
+        key=f"plan_editor_{run_id}_{plan.scenario_type}_{plan.n_target}_{plan_sig}",
+        column_config={
+            "target_concurrency": st.column_config.NumberColumn("동시 사용자", min_value=1, step=1),
+            "ramp_up_sec": st.column_config.NumberColumn("Ramp-up(s)", min_value=1, step=1),
+            "hold_sec": st.column_config.NumberColumn("Hold(s)", min_value=1, step=1),
+        },
+    )
     total = int((plan_edit["ramp_up_sec"] + plan_edit["hold_sec"]).sum())
     st.caption(f"총 소요 시간 약 {total}초 · duration = ramp-up + hold (JMeter Scheduler 기준)")
+    if phase == "review_plan":
+        chosen = s.plan_scenario_type
+        stale = chosen != plan.scenario_type
+        if chosen == "sla" and int(s.plan_n_target) != int(plan.n_target or 0):
+            stale = True
+        if chosen == "spike" and len(plan.steps) > 1 and plan.steps[1].ramp_up_sec != int(s.plan_spike_ramp_sec):
+            stale = True
+        if stale:
+            st.info("위쪽 시나리오 선택이 현재 플랜과 다릅니다. 재계산하면 표의 동시 사용자·Ramp-up·Hold가 새 공식으로 바뀝니다.")
+        if st.button("선택한 시나리오로 플랜 재계산"):
+            opts = dict(vals.get("options") or {})
+            opts.update(_plan_options(s))
+            with st.status("플랜 재계산 중…", expanded=True) as status:
+                driver.update_and_continue(
+                    graph, run_id, {"options": opts}, as_node="compute_thresholds", status=status,
+                )
+            st.rerun()
 
     rep = vals.get("diagnosis_report")
     if rep:
@@ -337,14 +460,17 @@ def render(graph) -> None:
                 st.markdown("**권고 설정 초안**")
                 st.dataframe(pd.DataFrame([r.model_dump() for r in rep.recommendations]), hide_index=True, use_container_width=True)
 
-    if vals.get("warnings"):
-        with st.expander(f"⚠ 경고 {len(vals['warnings'])}건"):
-            for w in vals["warnings"]:
+    if seen_warnings:
+        with st.expander(f"⚠ 경고 {len(seen_warnings)}건"):
+            for w in seen_warnings:
                 st.write("- " + w)
 
     if phase == "review_plan":
         if st.button("✅ 플랜 승인 → 시나리오 단계로", type="primary"):
-            st.session_state["pending_plan"] = {"steps": plan_edit.to_dict(orient="records"), "total_duration_sec": total}
+            approved = plan.model_dump()
+            approved["steps"] = plan_edit.to_dict(orient="records")
+            approved["total_duration_sec"] = total
+            st.session_state["pending_plan"] = approved
             st.session_state["plan_approved"] = True
             st.success("플랜이 승인되었습니다. [SC-002A] 탭에서 시나리오를 입력하세요.")
     else:

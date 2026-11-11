@@ -8,7 +8,7 @@
 2. anomalies 와 gc_series 를 대조해 지연 상승 ↔ Full GC/STW ↔ 503 의 시간 겹침을 correlations 에 서술
 3. primary_bottleneck.layer 는 db/was/web/jvm/app/none 중 1개. confidence 는 0~1. evidence 3줄 이내
 4. recommendations 는 component/parameter/current/proposed/rationale/risk 를 모두 채움 (JVM, Tomcat, DBCP, Apache 순으로 해당되는 것만)
-5. next_plan: 실측을 반영해 다음 테스트의 4개 Step 수치(target_concurrency/ramp_up_sec/hold_sec/expected_symptom)를 제안. 이름은 기존 Step 이름 유지. 확신이 없으면 null
+5. next_plan: 실측을 반영해 다음 테스트의 Step 수치(target_concurrency/ramp_up_sec/hold_sec/expected_symptom)를 제안. Step 개수와 이름은 기존 플랜을 유지한다(스파이크는 복귀 단계가 평시와 같은 동시 사용자로 내려간다). 확신이 없으면 null
 6. source 는 "llm"
 ---USER---
 <facts>

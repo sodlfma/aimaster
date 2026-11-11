@@ -32,6 +32,18 @@ def test_scenario_from_url_parses_everything():
     assert req.assertions[0].expected == "200"
 
 
+def test_render_jmx_spike_uses_three_threadgroups():
+    plan, _ = generate_load_plan(THR, hold_sec=5, scenario_type="spike")
+    spec = scenario_from_url(ScenarioInput(kind="url", payload="http://localhost:8080/api", method="GET"))
+    root = ET.fromstring(render_jmx(spec, plan, "run-spike"))
+    tgs = root.findall(".//ThreadGroup")
+    assert [tg.get("testname") for tg in tgs] == [s.name for s in plan.steps]
+    assert len(tgs) == 3
+    props = render_properties(spec, plan, "run-spike")
+    assert "\nstep3.threads=" in props
+    assert "\nstep4.threads=" not in props
+
+
 def test_render_jmx_is_well_formed_with_4_serial_threadgroups(tmp_path):
     plan = _plan()
     spec = scenario_from_url(ScenarioInput(kind="url", payload="http://localhost:8080/api", method="GET"))

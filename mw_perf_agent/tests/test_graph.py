@@ -132,6 +132,27 @@ def test_full_offline_loop_with_fake_jmeter(raw_inputs, no_llm, isolated_setting
     assert snap.values["load_plan"].steps[0].target_concurrency == rep.next_plan.steps[0].target_concurrency
 
 
+def test_selected_scenario_reaches_review_plan(raw_inputs, no_llm):
+    graph = build_graph(memory_checkpointer())
+    snap, _ = _drive(graph, {"configurable": {"thread_id": "t-spike"}}, {
+        "raw_inputs": raw_inputs, "llm_enabled": False,
+        "options": {"dry_run": True, "scenario_type": "spike", "spike_ramp_sec": 1, "hold_sec": 60},
+    })
+    plan = snap.values["load_plan"]
+    assert plan.scenario_type == "spike"
+    assert [s.target_concurrency for s in plan.steps] == [25, 390, 25]
+    assert plan.steps[1].ramp_up_sec == 1 and plan.steps[1].hold_sec == 30
+    assert "선택 시나리오: 스파이크" in snap.values["diagnosis_report"].summary
+
+    snap, _ = _drive(graph, {"configurable": {"thread_id": "t-sla"}}, {
+        "raw_inputs": raw_inputs, "llm_enabled": False,
+        "options": {"dry_run": True, "scenario_type": "sla", "n_target": 80},
+    })
+    plan = snap.values["load_plan"]
+    assert [s.target_concurrency for s in plan.steps] == [40, 80, 96]
+    assert any(str(w).startswith("사전 경고") for w in snap.values["warnings"])
+
+
 def test_review_plan_edit_recomputes_thresholds(raw_inputs, no_llm):
     graph = build_graph(memory_checkpointer())
     cfg = {"configurable": {"thread_id": "t-edit"}}

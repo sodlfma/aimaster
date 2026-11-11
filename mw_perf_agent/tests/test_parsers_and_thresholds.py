@@ -82,6 +82,52 @@ def test_load_plan_antipattern_correction():
     thr = compute_thresholds(ParsedConfig(tomcat_max_threads=50, tomcat_accept_count=10, dbcp_max_total=200))
     plan, warnings = generate_load_plan(thr)
     conc = [s.target_concurrency for s in plan.steps]
+    assert plan.scenario_type == "breakpoint"
     assert all(b > a for a, b in zip(conc, conc[1:]))
     assert warnings
     assert any("maxTotal" in f for f in rule_antipatterns(ParsedConfig(tomcat_max_threads=50, tomcat_accept_count=10, dbcp_max_total=200), thr))
+
+
+def test_spike_plan_returns_to_baseline():
+    thr = Thresholds(t_db_lock=50, t_queue=200, t_drop=300)
+    plan, warnings = generate_load_plan(thr, hold_sec=60, spike_ramp_sec=2, scenario_type="spike")
+    assert plan.scenario_type == "spike"
+    assert [s.name for s in plan.steps] == ["Base (평시)", "Spike (급등)", "Recovery (복귀)"]
+    assert [s.target_concurrency for s in plan.steps] == [25, 390, 25]
+    assert plan.steps[1].ramp_up_sec == 2 and plan.steps[1].hold_sec == 30
+    assert plan.steps[0].hold_sec == 60 and plan.steps[2].hold_sec == 60
+    assert plan.steps[0].target_concurrency == plan.steps[2].target_concurrency
+    assert warnings == []
+    # Ramp outside 1..3 is clamped, and the global ramp scale does not stretch the spike.
+    clamped, _ = generate_load_plan(thr, ramp_scale=3.0, spike_ramp_sec=9, scenario_type="spike")
+    assert clamped.steps[1].ramp_up_sec == 3
+    assert clamped.steps[0].ramp_up_sec == 30
+
+
+def test_spike_warns_when_burst_does_not_exceed_baseline():
+    thr = Thresholds(t_db_lock=400, t_queue=20, t_drop=30)
+    plan, warnings = generate_load_plan(thr, scenario_type="spike")
+    assert plan.steps[1].target_concurrency <= plan.steps[0].target_concurrency
+    assert any("스파이크" in w for w in warnings)
+
+
+def test_sla_plan_scales_to_target_and_warns_above_db_lock():
+    thr = Thresholds(t_db_lock=50, t_queue=200, t_drop=300)
+    plan, warnings = generate_load_plan(thr, scenario_type="sla", n_target=80, hold_sec=60)
+    assert plan.scenario_type == "sla" and plan.n_target == 80
+    assert [s.target_concurrency for s in plan.steps] == [40, 80, 96]
+    assert any(w.startswith("사전 경고") and "80" in w and "50" in w for w in warnings)
+    under, quiet = generate_load_plan(thr, scenario_type="sla", n_target=40)
+    assert [s.target_concurrency for s in under.steps] == [20, 40, 48]
+    assert not any(w.startswith("사전 경고") for w in quiet)
+    missing, warned = generate_load_plan(thr, scenario_type="sla", n_target=None)
+    assert missing.n_target == 1
+    assert any("N_target" in w for w in warned)
+
+
+def test_unknown_scenario_falls_back_to_breakpoint():
+    thr = Thresholds(t_db_lock=50, t_queue=200, t_drop=300)
+    plan, warnings = generate_load_plan(thr, scenario_type="soak")
+    assert plan.scenario_type == "breakpoint"
+    assert len(plan.steps) == 4
+    assert warnings

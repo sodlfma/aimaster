@@ -81,6 +81,7 @@ def render_sidebar(graph) -> None:
         hold = st.number_input("Hold (초)", 10, 3600, int(s.plan_hold_sec), 10)
         bucket = st.number_input("분석 버킷 (초)", 1, 60, int(s.bucket_sec), 1)
         update_settings(plan_ramp_scale=ramp, plan_hold_sec=int(hold), bucket_sec=int(bucket))
+        st.caption("부하 시나리오(임계치 돌파 / 스파이크 / SLA)는 ① 진단 탭에서 고릅니다. 스파이크 급등 Hold는 30초로 고정됩니다.")
 
     st.sidebar.divider()
     st.sidebar.subheader("🧵 Run")

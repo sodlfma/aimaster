@@ -66,10 +66,13 @@ class Settings:
     ssh_identity_file: str = os.environ.get("SSH_IDENTITY_FILE", "")
     ssh_password: str = os.environ.get("SSH_PASSWORD", "")
     ssh_strict_host_key: str = os.environ.get("SSH_STRICT_HOST_KEY", "accept-new")
-    # Plan defaults
+    # Plan defaults (SC-001 scenario selection)
     bucket_sec: int = 5
     plan_ramp_scale: float = 1.0
     plan_hold_sec: int = 60
+    plan_scenario_type: str = "breakpoint"  # breakpoint | spike | sla
+    plan_n_target: int = 100                # SLA: business target concurrency
+    plan_spike_ramp_sec: int = 2            # Spike ramp, clamped to 1..3 seconds
     extra: dict = field(default_factory=dict)
 
     @property

@@ -142,11 +142,17 @@ def _rules_report(state: PerfAgentState) -> DiagnosisReport:
     order = ["db", "was", "web"] if thr.t_db_lock <= thr.t_queue else ["was", "db", "web"]
     if thr.web_cap is not None and thr.web_cap < thr.t_drop:
         order = ["web"] + [o for o in order if o != "web"]
+    label = plan.scenario_label or plan.scenario_type or "부하 플랜"
     summary = (
+        f"선택 시나리오: {label}. "
         f"DB 커넥션 풀은 동시 {thr.t_db_lock}명에서 고갈되고, Tomcat 워커는 {thr.t_queue}명부터 큐잉되며, "
         f"{thr.t_drop}명을 넘기면 accept 큐가 차서 503/연결 거부가 발생할 것으로 예상됩니다. "
         f"병목 순서: {' → '.join(order)}. (규칙 기반 요약, LLM 해석 생략)"
     )
+    if plan.scenario_type == "sla" and plan.n_target and plan.n_target > thr.t_db_lock:
+        summary += (
+            f" 사전 경고: N_target({plan.n_target})이 T_db_lock({thr.t_db_lock})보다 큽니다."
+        )
     return DiagnosisReport(
         summary=summary,
         bottleneck_order=order,
@@ -276,14 +282,53 @@ def _rules_analysis(state: PerfAgentState) -> AnalysisReport:
                           next_plan=_rules_next_plan(plan, pva, by_step), source="rules")
 
 
+def _plan_meta(plan: LoadPlan) -> dict:
+    return {
+        "scenario_type": plan.scenario_type,
+        "scenario_label": plan.scenario_label,
+        "purpose": plan.purpose,
+        "n_target": plan.n_target,
+        "verification_points": list(plan.verification_points),
+    }
+
+
+def _step_broke(row: dict | None) -> bool:
+    return bool(row) and (row.get("err_rate", 0) >= 1.0 or row.get("http_503", 0) > 0)
+
+
+def _spike_next_plan(plan: LoadPlan, by_step: dict) -> LoadPlan:
+    """Keep base == recovery. Only the spike height moves."""
+    base, spike, recovery = plan.steps[0], plan.steps[1], plan.steps[2]
+    base_c = base.target_concurrency
+    spike_c = spike.target_concurrency
+    if _step_broke(by_step.get(base.name)):
+        base_c = max(1, int(base_c * 0.8))
+    if _step_broke(by_step.get(spike.name)):
+        spike_c = max(base_c + 1, int((base_c + spike_c) / 2))
+        spike_symptom = "스파이크 상한 재탐색"
+    else:
+        spike_c = max(base_c + 1, int(spike_c * 1.2))
+        spike_symptom = "스파이크 상한 상향"
+    steps = [
+        base.model_copy(update={"target_concurrency": base_c}),
+        spike.model_copy(update={"target_concurrency": spike_c, "expected_symptom": spike_symptom}),
+        recovery.model_copy(update={"target_concurrency": base_c}),
+    ]
+    return LoadPlan(steps=steps, **_plan_meta(plan)).recompute_total()
+
+
 def _rules_next_plan(plan: LoadPlan | None, pva: list[PredictionCompare], by_step: dict) -> LoadPlan | None:
     """Narrow the next test around the first step whose symptoms appeared, or push
-    the ceiling up when nothing broke. Users review/edit it at gate_review_plan."""
+    the ceiling up when nothing broke. Users review/edit it at gate_review_plan.
+
+    Spike plans stay non-monotonic: recovery returns to the baseline concurrency.
+    """
     if not plan or not plan.steps:
         return None
+    if plan.scenario_type == "spike" and len(plan.steps) >= 3:
+        return _spike_next_plan(plan, by_step)
     steps = plan.steps
-    first_bad = next((i for i, s in enumerate(steps)
-                      if (r := by_step.get(s.name)) and (r["err_rate"] >= 1.0 or r["http_503"] > 0)), None)
+    first_bad = next((i for i, s in enumerate(steps) if _step_broke(by_step.get(s.name))), None)
     if first_bad is None:
         top = steps[-1].target_concurrency
         targets = [int(top * f) for f in (1.0, 1.2, 1.4, 1.6)]
@@ -298,7 +343,7 @@ def _rules_next_plan(plan: LoadPlan | None, pva: list[PredictionCompare], by_ste
         out.append(LoadStep(name=s.name, target_concurrency=t, ramp_up_sec=s.ramp_up_sec, hold_sec=s.hold_sec,
                             expected_symptom=("상한 탐색" if first_bad is None else "임계 지점 정밀 탐색")))
         prev = t
-    return LoadPlan(steps=out).recompute_total()
+    return LoadPlan(steps=out, **_plan_meta(plan)).recompute_total()
 
 
 def anomalies_overlap(anomalies) -> list[str]:
@@ -320,7 +365,14 @@ def _ctx_analyze(state: PerfAgentState) -> dict:
 
 def _analyze_to_state(state: PerfAgentState, out: AnalysisReport) -> dict:
     out.source = "llm"
+    prev = state.get("load_plan")
     if out.next_plan:
+        if prev and not out.next_plan.scenario_label:
+            out.next_plan.scenario_type = prev.scenario_type
+            out.next_plan.scenario_label = prev.scenario_label
+            out.next_plan.purpose = prev.purpose
+            out.next_plan.n_target = prev.n_target
+            out.next_plan.verification_points = list(prev.verification_points)
         out.next_plan.recompute_total()
     return {"analysis_report": out}
 

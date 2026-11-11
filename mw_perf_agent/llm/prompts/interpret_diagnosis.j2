@@ -16,7 +16,9 @@
 설정: {{ parsed_config | tojson }}
 임계치: T_db_lock={{ thresholds.t_db_lock }}, T_queue={{ thresholds.t_queue }}, T_drop={{ thresholds.t_drop }}{% if thresholds.web_cap %}, Web_cap={{ thresholds.web_cap }}{% endif %}
 공식: {{ thresholds.formulas | tojson }}
-4단계 플랜: {% for s in load_plan.steps %}{{ s.name }}={{ s.target_concurrency }}명(ramp {{ s.ramp_up_sec }}s, hold {{ s.hold_sec }}s) → 기대: {{ s.expected_symptom }}; {% endfor %}
+선택 시나리오: {{ load_plan.scenario_label or load_plan.scenario_type }} ({{ load_plan.scenario_type }}){% if load_plan.n_target %} · N_target={{ load_plan.n_target }}{% endif %}
+목적: {{ load_plan.purpose }}
+플랜: {% for s in load_plan.steps %}{{ s.name }}={{ s.target_concurrency }}명(ramp {{ s.ramp_up_sec }}s, hold {{ s.hold_sec }}s) → 기대: {{ s.expected_symptom }}; {% endfor %}
 </facts>
 <rules>
 {% for f in rule_findings %}- {{ f }}

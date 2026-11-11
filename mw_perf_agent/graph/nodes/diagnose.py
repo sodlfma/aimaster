@@ -96,6 +96,12 @@ def compute_thresholds(state: PerfAgentState) -> dict:
     return {"parsed_config": resolved, "thresholds": thr, "warnings": warnings, "node_log": [f"compute_thresholds: {thr.t_db_lock}/{thr.t_queue}/{thr.t_drop}"]}
 
 
+def _opt_int(opts: dict, key: str, default: int | None) -> int | None:
+    if key not in opts or opts.get(key) in (None, ""):
+        return default
+    return int(opts[key])
+
+
 def build_load_plan(state: PerfAgentState) -> dict:
     opts = state.get("options") or {}
     s = get_settings()
@@ -103,6 +109,9 @@ def build_load_plan(state: PerfAgentState) -> dict:
         state["thresholds"],
         ramp_scale=float(opts.get("ramp_scale", s.plan_ramp_scale)),
         hold_sec=int(opts.get("hold_sec", s.plan_hold_sec)),
+        scenario_type=str(opts.get("scenario_type") or s.plan_scenario_type or "breakpoint"),
+        n_target=_opt_int(opts, "n_target", s.plan_n_target),
+        spike_ramp_sec=int(opts.get("spike_ramp_sec", s.plan_spike_ramp_sec)),
     )
     # Rule-based diagnosis is always available; llm_interpret_diagnosis overrides it when it runs.
     from .llm_nodes import rules_diagnosis_report
@@ -112,5 +121,5 @@ def build_load_plan(state: PerfAgentState) -> dict:
         "load_plan": plan,
         "diagnosis_report": report,
         "warnings": warnings,
-        "node_log": [f"build_load_plan: {[st.target_concurrency for st in plan.steps]}"],
+        "node_log": [f"build_load_plan: {plan.scenario_type} {[st.target_concurrency for st in plan.steps]}"],
     }
