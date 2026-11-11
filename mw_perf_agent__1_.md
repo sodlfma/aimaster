@@ -147,7 +147,7 @@ flowchart TD
 | `llm_extract_config` | LLM | `raw_inputs`, `parsed_config` | `parsed_config_llm` | `with_structured_output(ParsedConfig)`, `RetryPolicy(max_attempts=3)` |
 | `merge_validate` | 결정론 | `parsed_config`, `parsed_config_llm` | `parsed_config`(병합), `warnings` | 정규식 우선, 근거 없는 LLM 값 폐기 |
 | `compute_thresholds` | 결정론 | `parsed_config` | `thresholds` | |
-| `build_load_plan` | 결정론 | `thresholds`, `plan_options` | `load_plan` | 단조성 보정 |
+| `build_load_plan` | 결정론 | `thresholds`, `options.scenario_type` | `load_plan` | 시나리오 3종 중 선택. 계단식·SLA만 단조성 보정 |
 | `llm_interpret_diagnosis` | LLM | `parsed_config`, `thresholds`, `load_plan` | `diagnosis_report` | 실패 시 규칙 기반 안티패턴 목록으로 Fallback |
 | `gate_review_plan` | **interrupt** | 상태 전체 | `parsed_config`, `load_plan`(사용자 편집본), `scenario_input` | Tab1→Tab2 전환 지점 |
 | `route_scenario_source` | 라우터 | `scenario_input.kind` | — | 조건부 엣지 함수 |
@@ -260,7 +260,7 @@ class PerfAgentState(TypedDict, total=False):
     # 입력 · 설정
     run_id: str
     llm_enabled: bool
-    options: dict                               # interpret 토글, ramp 배율, 토큰 상한 등
+    options: dict                               # interpret 토글, ramp 배율, scenario_type, n_target, spike_ramp_sec
     raw_inputs: dict[str, str]                  # {"web_mon_cron.env": ..., "tomcat.env": ..., "httpd-mpm.conf": ...}
     target_info: TargetInfo
     # SC-001
@@ -348,6 +348,11 @@ class LoadStep(BaseModel):
 class LoadPlan(BaseModel):
     steps: list[LoadStep]
     total_duration_sec: int
+    scenario_type: Literal["breakpoint", "spike", "sla"] = "breakpoint"
+    scenario_label: str = ""                   # UI 표시명
+    purpose: str = ""                          # 선택한 시나리오의 핵심 목적
+    n_target: int | None = None                # sla 일 때만. 비즈니스 목표 동시접속자
+    verification_points: list[str] = []        # 기대 검증 포인트
 
 class ScenarioSpec(BaseModel):                 # JMX 렌더링 입력 (LLM 또는 수동 생성)
     name: str
@@ -430,17 +435,38 @@ class Anomaly(BaseModel):
 
 모든 공식은 `Thresholds.formulas`에 문자열로 함께 반환하여 UI와 LLM 프롬프트에 동일하게 노출합니다. (예: `"t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"`)
 
-#### 3.1.3 4단계 부하 플랜 생성 기준
+#### 3.1.3 부하 시나리오 선택 및 플랜 산출
 
-| Step | Target Concurrency | 기대 증상 | 비고 |
-|---|---|---|---|
-| 1 (Normal) | $0.8 \times T_{db\_lock}$ | 안정 | 베이스라인 |
-| 2 (DB Saturation) | $1.1 \times T_{db\_lock}$ | DB Connection 대기, `maxWait` 초과 오류 | |
-| 3 (WAS Queueing) | $\frac{T_{queue} + T_{drop}}{2}$ | 응답지연 급증, 큐잉 | |
-| 4 (Stress/Drop) | $1.2 \times T_{drop}$ | HTTP 503 / Connection refused | 복구력 검증 |
+`build_load_plan`은 임계치 계산 이후 **세 가지 시나리오 중 하나**만 사용합니다. 선택값은 `options.scenario_type`이며, 생략 시 `breakpoint`(현재 기본 모델)입니다. Tab1에서 진단 실행 전에 고르고, `review_plan` 게이트에서는 선택을 바꾼 뒤 `compute_thresholds` 출력으로 `options`를 갱신해 같은 Run에서 플랜만 다시 산출할 수 있습니다. JMX의 ThreadGroup 개수는 선택된 시나리오의 Step 수와 같습니다.
 
-* **단조 증가 보정**: 설정에 따라 Step 2 > Step 3가 되는 경우(예: `dbcp_max_total`이 `maxThreads`보다 큰 비정상 설정) 자동으로 정렬하고 LLM 해석 리포트에서 "설정 안티패턴"으로 지적
-* Ramp-up/Hold는 기본값(10/10/20/30초, 60초)을 사용하되 사이드바에서 전역 배율 조정 가능
+| 시나리오 유형 | `scenario_type` | 핵심 목적 | 부하 패턴 및 산정 공식 (기존 임계치 활용) | 기대 검증 포인트 |
+|---|---|---|---|---|
+| 1. 계층별 임계치 돌파 테스트 (현재 기본 모델) | `breakpoint` | DB → WAS → Web 순으로 병목 지점 및 한계치(Breakpoint) 확인 | 4단계 계단식 상승 (Step-up) · S1: $0.8 \times T_{db\_lock}$ · S2: $1.1 \times T_{db\_lock}$ · S3: $(T_{queue} + T_{drop}) / 2$ · S4: $1.2 \times T_{drop}$ | 각 계층의 임계치 도달 시 에러 발생 양상 및 시스템 한계점 규명 |
+| 2. 스파이크 테스트 (Spike Test) | `spike` | 선착순 이벤트, 수강신청 등 순간적인 트래픽 폭증 시 생존 및 복구력 검증 | 평시 부하 중 순간 급등 후 복귀 · Base: $0.5 \times T_{db\_lock}$ (유지) · Spike: $1.3 \times T_{drop}$ (Ramp-up 1~3초, Hold 30초) · Recovery: $0.5 \times T_{db\_lock}$ | 순간적인 acceptCount 초과로 인한 503 에러 폭증 여부 및 부하 해소 후 스레드·커넥션 정상 반환 여부 |
+| 3. 목표 SLA 검증 테스트 (Load / SLA Test) | `sla` | 인프라 한계와 무관하게 비즈니스 목표 동시접속자($N_{target}$) 수용 가능 여부 확인 | 목표치 기준 3단계 점진 상승 · S1: $0.5 \times N_{target}$ · S2: $1.0 \times N_{target}$ (목표 구간) · S3: $1.2 \times N_{target}$ (여유율 검증) | 목표 부하에서의 평균 응답시간(TPS, Latency) 충족 여부 (단, $N_{target} > T_{db\_lock}$ 시 사전 경고 출력) |
+
+산출 결과는 `LoadPlan.scenario_type` / `scenario_label` / `purpose` / `verification_points`에 함께 남고, SLA만 `n_target`을 채웁니다. 동시 사용자는 1 이상의 정수로 내림합니다.
+
+**시나리오별 Step·시간**
+
+| 유형 | Step | 동시 사용자 | Ramp-up | Hold | 기대 증상 |
+|---|---|---|---|---|---|
+| `breakpoint` | 1 Normal | $0.8 \times T_{db\_lock}$ | 10초 × 배율 | 전역 Hold (기본 60초) | 안정, 베이스라인 |
+| `breakpoint` | 2 DB Saturation | $1.1 \times T_{db\_lock}$ | 10초 × 배율 | 전역 Hold | DB Connection 대기, `maxWait` 초과 오류 |
+| `breakpoint` | 3 WAS Queueing | $(T_{queue} + T_{drop}) / 2$ | 20초 × 배율 | 전역 Hold | 응답지연 급증, 큐잉 |
+| `breakpoint` | 4 Stress/Drop | $1.2 \times T_{drop}$ | 30초 × 배율 | 전역 Hold | HTTP 503 / Connection refused |
+| `spike` | Base (평시) | $0.5 \times T_{db\_lock}$ | 10초 × 배율 | 전역 Hold | 평시 부하 유지 |
+| `spike` | Spike (급등) | $1.3 \times T_{drop}$ | 1~3초 (기본 2초, `options.spike_ramp_sec`, 배율 미적용) | **30초 고정** | acceptCount 순간 초과, HTTP 503 폭증 여부 |
+| `spike` | Recovery (복귀) | $0.5 \times T_{db\_lock}$ | 10초 × 배율 | 전역 Hold | 스레드·커넥션 정상 반환 |
+| `sla` | S1 | $0.5 \times N_{target}$ | 10초 × 배율 | 전역 Hold | 워밍업, 베이스라인 |
+| `sla` | S2 | $1.0 \times N_{target}$ | 20초 × 배율 | 전역 Hold | 목표 구간 TPS·Latency |
+| `sla` | S3 | $1.2 \times N_{target}$ | 30초 × 배율 | 전역 Hold | 여유율 검증 |
+
+* **입력**: `options.scenario_type` ∈ {`breakpoint`, `spike`, `sla`}. SLA는 `options.n_target` (1 이상, Tab1 숫자 입력). 스파이크 급등 Ramp-up은 `options.spike_ramp_sec` (1~3, 범위 밖은 자른다). 알 수 없는 유형은 `breakpoint`로 대체하고 `warnings`에 기록합니다. `n_target`이 없으면 SLA는 `N_target=1`로 대체하고 경고합니다.
+* **단조 증가 보정** (`breakpoint`, `sla`만): 뒤 단계 동시 사용자가 앞 단계 이하이면(예: `dbcp_max_total`이 `maxThreads`보다 큰 비정상 설정, 또는 아주 작은 `N_target`의 정수 내림) 이전 단계 + 10%(최소 1)로 올리고 `warnings`에 기록합니다. LLM 해석 리포트는 설정 안티패턴으로 같은 사실을 지적할 수 있습니다.
+* **스파이크는 보정하지 않습니다.** Recovery는 Base와 같은 동시 사용자로 남습니다. $1.3 \times T_{drop} \le 0.5 \times T_{db\_lock}$ 이면 급등이 평시를 넘지 못한다는 경고만 남깁니다.
+* **SLA 사전 경고**: $N_{target} > T_{db\_lock}$ 이면 `warnings`에 `사전 경고:`로 시작하는 문장을 넣고, Tab1은 이를 플랜 표 위에 바로 표시합니다. 플랜 수치 자체는 인프라 한계에 맞춰 깎지 않습니다.
+* Ramp-up 배율과 전역 Hold는 사이드바에서 조정합니다. 스파이크 급등 구간의 1~3초·30초는 이 배율의 적용을 받지 않습니다.
 
 #### 3.1.4 LLM 해석 리포트 (`llm_interpret_diagnosis` 노드) — 신규
 
@@ -457,9 +483,9 @@ class Anomaly(BaseModel):
 
 > **그래프 구간**: `gate_review_plan → route_scenario_source → (scenario_from_url | llm_design_scenario) → gate_review_scenario → render_bundle → validate_jmx → (llm_explain_error → gate_review_scenario 루프) → gate_confirm_run`
 
-#### 3.2.1 4단계 플랜 → 순정 ThreadGroup 매핑
+#### 3.2.1 선택 플랜 → 순정 ThreadGroup 매핑
 
-플러그인 없이 단계적 부하를 표현하기 위해 **ThreadGroup 4개를 `TestPlan.serialize_threadgroups=true`로 직렬 실행**합니다.
+플러그인 없이 단계적 부하를 표현하기 위해 **`LoadPlan.steps`와 같은 개수의 ThreadGroup을 `TestPlan.serialize_threadgroups=true`로 직렬 실행**합니다. `breakpoint`는 4개, `spike`와 `sla`는 3개입니다.
 
 | LoadStep 필드 | JMX 속성 | 비고 |
 |---|---|---|
@@ -814,7 +840,8 @@ jmeter.save.saveservice.thread_name=true
 * **출력부** (interrupt payload 렌더링):
   * 파싱 결과 테이블 (필드 · 값 · 출처(regex/llm/default) · 근거 라인) — `st.data_editor`로 수정 가능
   * 3개 메트릭 카드(DB/WAS/HTTP 임계치) + 산출 공식 툴팁
-  * 4단계 부하 플랜 테이블(편집 가능) + 기대 증상
+  * 부하 시나리오 선택(`breakpoint` / `spike` / `sla`). SLA는 $N_{target}$, 스파이크는 Ramp-up 1~3초를 함께 입력. 산출된 플랜 테이블(편집 가능) + 목적·기대 검증. 선택을 바꾸면 [선택한 시나리오로 플랜 재계산]
+  * $N_{target} > T_{db\_lock}$ 이면 플랜 표 위에 사전 경고
   * LLM 해석 리포트 (안티패턴 · 체크리스트 · 권고) — 접이식, `llm_skipped`면 "생략" 배지
   * [승인하고 다음 단계] → 편집본과 함께 resume (설정값을 수정했으면 `merge_validate` 기준 재계산 후 다시 게이트)
 
@@ -1150,7 +1177,7 @@ summary =   5678 in 00:00:30 =  189.3/s Avg:   140 Min:     4 Max:  2100 Err:   
 
 | 용어 | 정의 |
 |---|---|
-| Step | 4단계 부하 플랜의 한 구간(동시 사용자 수·ramp-up·hold) |
+| Step | 선택한 부하 시나리오의 한 구간(동시 사용자 수·ramp-up·hold). 임계치 돌파는 4구간, 스파이크·SLA는 3구간 |
 | Run | 그래프 1회 실행 단위(= LangGraph `thread_id`). `runs/<run_id>/`에 입력·산출물 저장 |
 | 노드(Node) | 그래프의 실행 단위. 상태를 입력받아 부분 상태를 반환하는 순수 함수 |
 | 게이트(Gate) | `interrupt()`로 그래프를 멈추고 사용자 편집·승인을 받는 노드. 탭 경계와 1:1 대응 |

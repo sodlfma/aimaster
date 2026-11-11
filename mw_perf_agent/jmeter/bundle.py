@@ -17,6 +17,13 @@ def _readme(run_id: str, scenario: ScenarioSpec, plan: LoadPlan, thresholds: Opt
     rows = "\n".join(
         f"| {s.name} | {s.target_concurrency} | {s.ramp_up_sec}s | {s.hold_sec}s | {s.expected_symptom} |" for s in plan.steps
     )
+    label = plan.scenario_label or "부하 플랜"
+    n_steps = len(plan.steps)
+    purpose = f"\n목적: {plan.purpose}\n" if plan.purpose else ""
+    verify = ""
+    if plan.verification_points:
+        verify = "\n기대 검증: " + " ".join(plan.verification_points) + "\n"
+    n_target = f"\nN_target: {plan.n_target}\n" if plan.n_target else ""
     thr = ""
     if thresholds:
         thr = (
@@ -34,15 +41,15 @@ def _readme(run_id: str, scenario: ScenarioSpec, plan: LoadPlan, thresholds: Opt
 ```bash
 export JMETER_HOME=/opt/apache-jmeter   # 필요 시
 ./run.sh                                # 기본 플랜
-./run.sh -Jstep4.threads=400            # 수치만 바꿔 재실행 (JMX 재생성 불필요)
+./run.sh -Jstep{n_steps}.threads=400    # 수치만 바꿔 재실행 (JMX 재생성 불필요)
 ```
 
 결과 `out_<timestamp>/result.jtl`을 MW Perf-Agent Tab 4에 업로드하면 사후 분석이 진행됩니다.
 
 ## 임계치
 {thr}
-## 4단계 부하 플랜 (ThreadGroup 직렬 실행, duration = ramp-up + hold)
-
+## {label} ({n_steps}단계, ThreadGroup 직렬 실행, duration = ramp-up + hold)
+{purpose}{n_target}{verify}
 | Step | 동시 사용자 | Ramp-up | Hold | 기대 증상 |
 |---|---|---|---|---|
 {rows}

@@ -1,6 +1,6 @@
 # MW Perf Agent (LangGraph 기반)
 
-`mw_perf_agent__1_.md` v2.1 명세의 구현체입니다. 미들웨어 설정(Apache/Tomcat/DBCP) 진단 → 4단계 부하 플랜 → JMeter 스크립트 빌드/검증 → 실행(실시간 진행률) → JTL·GC 교차 분석까지를 **하나의 LangGraph `StateGraph`** 로 오케스트레이션하고, 사용자 승인 지점은 `interrupt()` 게이트로, 실행 이력은 `SqliteSaver` 체크포인트로 관리합니다.
+`mw_perf_agent__1_.md` v2.1 명세의 구현체입니다. 미들웨어 설정(Apache/Tomcat/DBCP) 진단 → 부하 시나리오(임계치 돌파 / 스파이크 / 목표 SLA) 중 하나를 고른 플랜 → JMeter 스크립트 빌드/검증 → 실행(실시간 진행률) → JTL·GC 교차 분석까지를 **하나의 LangGraph `StateGraph`** 로 오케스트레이션하고, 사용자 승인 지점은 `interrupt()` 게이트로, 실행 이력은 `SqliteSaver` 체크포인트로 관리합니다.
 
 ## 실행
 

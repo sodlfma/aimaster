@@ -8,7 +8,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 __all__ = [
-    "TargetInfo", "ParsedConfig", "Thresholds", "LoadStep", "LoadPlan", "Extractor", "Assertion", "RequestSpec",
+    "TargetInfo", "ParsedConfig", "Thresholds", "LoadScenarioType", "LoadStep", "LoadPlan", "Extractor", "Assertion", "RequestSpec",
     "ScenarioSpec", "ScenarioInput", "BundlePaths", "ValidationResult", "PreflightCheck", "RunResult", "Anomaly",
 ]
 
@@ -60,6 +60,9 @@ class Thresholds(BaseModel):
     formulas: dict[str, str] = Field(default_factory=dict)
 
 
+LoadScenarioType = Literal["breakpoint", "spike", "sla"]
+
+
 class LoadStep(BaseModel):
     name: str
     target_concurrency: int
@@ -75,6 +78,12 @@ class LoadStep(BaseModel):
 class LoadPlan(BaseModel):
     steps: list[LoadStep]
     total_duration_sec: int = 0
+    # Which SC-001 load shape produced these steps. Defaults keep older checkpoints valid.
+    scenario_type: LoadScenarioType = "breakpoint"
+    scenario_label: str = ""
+    purpose: str = ""
+    n_target: Optional[int] = None
+    verification_points: list[str] = Field(default_factory=list)
 
     def recompute_total(self) -> "LoadPlan":
         self.total_duration_sec = sum(s.ramp_up_sec + s.hold_sec for s in self.steps)
