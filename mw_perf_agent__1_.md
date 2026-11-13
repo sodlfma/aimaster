@@ -767,10 +767,11 @@ jmeter.save.saveservice.thread_name=true
 
 ### 6.1 실행 도구 (메인 그래프 전용, LLM 노출 금지)
 
-* **`fetch_remote_configs(host, paths)`**
-  무거운 외부 라이브러리(Paramiko 등) 대신 **사전 구축된 사내 SSH 쉘 실행 프로그램을 `subprocess.run()`으로 래핑**하여 호출합니다. 반환 stdout을 파일별로 분리(`=== <path> ===` 구분자 규약)하여 `ingest_inputs` 노드가 `raw_inputs`에 병합합니다.
-  * 인자는 리스트 형태로 전달(`shell=False`)하고 호스트명은 정규식 `^[A-Za-z0-9._-]+$`로 검증하여 명령 주입 차단
-  * 타임아웃 30초, 실패 시 수동 붙여넣기로 Fallback
+* **`fetch_remote_configs(host, paths)` / `fetch_from_homes(host, apache_path, tomcat_path)`**
+  무거운 외부 라이브러리(Paramiko 등) 대신 **사전 구축된 사내 SSH 쉘 실행 프로그램을 `subprocess.run(shell=False)`로 래핑**하여 호출합니다. 반환 stdout을 파일별로 분리(`=== <path> ===` 구분자 규약)하여 `ingest_inputs` 노드가 `raw_inputs`에 병합합니다.
+  * 인자는 리스트 형태로 전달하고 호스트명은 정규식 `^[A-Za-z0-9._-]+$`로 검증하여 명령 주입 차단
+  * 디렉터리 입력 시 사내 표준 상대경로 `shl/tomcat.env`, `conf/httpd-mpm.conf`를 붙임. 명령 템플릿은 `SSH_WRAPPER_CMD` (`{host}` `{path}`)
+  * 타임아웃 30초, tomcat.env 수집 실패 시 진단을 시작하지 않고 오류 표시
 * **`collect_gc_stats(host, pid, interval, duration)`**: 동일 래퍼로 `jstat -gcutil` 실행, `run_jmeter` 노드와 함께 기동되어 종료 시 `gc_input`에 기록
 * **`run_jmeter(run_dir, mode, overrides, writer)`**: 3.3.1 커맨드 생성·실행, `writer`(`get_stream_writer()`)로 진행률 이벤트 발행
 * **`preflight_checks(target, mode, plan)`**: 5.5 항목 수행, `PreflightCheck` 리스트 반환
@@ -808,8 +809,8 @@ jmeter.save.saveservice.thread_name=true
 * 그래프 토폴로지 미리보기(`graph.get_graph().draw_mermaid()`), 현재 노드 하이라이트
 
 ### Tab 1. 환경 설정 및 인프라 진단 (SC-001)
-* **입력부**: `web_mon_cron.env`, `httpd-mpm.conf`, `tomcat.env`(또는 `server.xml`) 붙여넣기 Area / [SSH 래퍼로 수집] 버튼
-* **실행 버튼**: [진단 및 4단계 플랜 산출] → 그래프가 `gate_review_plan`에서 멈출 때까지 노드 진행 로그를 `st.status`에 표시
+* **입력부**: 대상 호스트, Apache 홈(또는 `httpd-mpm.conf` 경로), Tomcat 홈(또는 `tomcat.env` 경로). 설정 원문 붙여넣기 없음
+* **실행 버튼**: [SSH로 설정 수집 및 진단] → 래퍼가 `shl/tomcat.env`·`conf/httpd-mpm.conf`를 수집한 뒤 그래프가 `gate_review_plan`에서 멈출 때까지 노드 진행 로그를 `st.status`에 표시. [샘플(Mock)로 미리보기]는 fixture 기반
 * **출력부** (interrupt payload 렌더링):
   * 파싱 결과 테이블 (필드 · 값 · 출처(regex/llm/default) · 근거 라인) — `st.data_editor`로 수정 가능
   * 3개 메트릭 카드(DB/WAS/HTTP 임계치) + 산출 공식 툴팁

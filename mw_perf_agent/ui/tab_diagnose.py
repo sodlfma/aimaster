@@ -5,78 +5,151 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from config.settings import get_settings
+from config.settings import get_settings, update_settings
 from graph.nodes.diagnose import new_run_id
-from model.schemas import ParsedConfig
-from tools.ssh_wrapper import fetch_remote_configs
+from model.schemas import ParsedConfig, TargetInfo
+from tools.ssh_wrapper import (
+    DEFAULT_SSH_WRAPPER_CMD,
+    DEFAULT_TIMEOUT_SEC,
+    RemoteConfigError,
+    effective_ssh_wrapper_cmd,
+    fetch_from_homes,
+)
 from . import driver
 
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
 INPUT_KEYS = ("web_mon_cron.env", "httpd-mpm.conf", "tomcat.env")
-PHASE_ORDER = {"new": 0, "review_plan": 1, "review_scenario": 2, "confirm_run": 3, "running": 4, "done": 5}
 
 
-def _load_sample() -> None:
+def _sample_raw(host: str, apache_path: str, tomcat_path: str) -> dict[str, str]:
+    raw = {}
     for k in INPUT_KEYS:
         p = FIXTURES / k
-        st.session_state[f"in_{k}"] = p.read_text(encoding="utf-8") if p.exists() else ""
+        raw[k] = p.read_text(encoding="utf-8") if p.exists() else ""
+    raw["web_mon_cron.env"] = (
+        f"HOST={host or 'was01.corp.local'}\n"
+        f"APACHE_HOME={apache_path or '/sw/apache'}\n"
+        f"TOMCAT_HOME={tomcat_path or '/sw/tomcat'}\n"
+        'INSTANCES="inst01 inst02"\n'
+    )
+    return raw
+
+
+def _run_diagnosis(graph, raw: dict[str, str], source: str, collected: dict[str, str] | None, target: TargetInfo) -> None:
+    if not any(v.strip() for v in raw.values() if v):
+        st.error("수집된 설정 원문이 비어 있습니다.")
+        return
+    s = get_settings()
+    run_id = new_run_id()
+    st.session_state["run_id"] = run_id
+    st.session_state.pop("monitor", None)
+    st.session_state["plan_approved"] = False
+    st.session_state["collect_source"] = source
+    st.session_state["collected_files"] = collected or {k: v for k, v in raw.items() if v}
+    inp = {
+        "run_id": run_id,
+        "raw_inputs": raw,
+        "target_info": target,
+        "llm_enabled": s.llm_enabled,
+        "options": {
+            "interpret": s.interpret_enabled,
+            "ramp_scale": s.plan_ramp_scale,
+            "hold_sec": s.plan_hold_sec,
+            "bucket_sec": s.bucket_sec,
+            "dry_run": True,
+        },
+    }
+    with st.status("그래프 실행 중 (SC-001)…", expanded=True) as status:
+        driver.drive_sync(graph, run_id, inp, status=status)
+        status.update(label="진단 완료 — 플랜을 검토하세요", state="complete")
+    st.rerun()
 
 
 def render(graph) -> None:
     st.header("1. 인프라 진단 및 4단계 부하 플랜 산출 (SC-001)")
-    s = get_settings()
+    st.caption("설정 원문(tomcat.env, httpd-mpm.conf)은 붙여넣지 않습니다. 호스트와 경로만 주면 SSH 래퍼가 서버에서 읽어 옵니다.")
 
-    with st.expander("입력", expanded=st.session_state.get("run_id") is None):
-        c1, c2 = st.columns([3, 1])
-        with c2:
-            st.button("샘플 불러오기", on_click=_load_sample, use_container_width=True)
-            if s.ssh_wrapper_cmd:
-                host = st.text_input("SSH 수집 호스트", value="")
-                paths = st.text_area("수집 경로 (줄바꿈)", value="shl/tomcat.env\nconf/httpd-mpm.conf", height=80)
-                if st.button("SSH 래퍼로 수집", use_container_width=True) and host:
-                    try:
-                        got = fetch_remote_configs(host, [p for p in paths.splitlines() if p.strip()])
-                        for path, content in got.items():
-                            key = "tomcat.env" if "tomcat" in path else "httpd-mpm.conf" if "httpd" in path else path
-                            st.session_state[f"in_{key}"] = content
-                        st.success(f"{len(got)}개 파일 수집")
-                    except Exception as e:  # noqa: BLE001
-                        st.error(str(e))
-            else:
-                st.caption("SSH 래퍼는 `SSH_WRAPPER_CMD` 환경변수 설정 시 활성화됩니다.")
-        with c1:
-            a, b, c = st.columns(3)
-            a.text_area("web_mon_cron.env", key="in_web_mon_cron.env", height=180)
-            b.text_area("httpd-mpm.conf", key="in_httpd-mpm.conf", height=180)
-            c.text_area("tomcat.env / server.xml", key="in_tomcat.env", height=180)
-        extra = st.text_area("기타 설정 원문 (옵션: setenv.sh, context.xml 등)", key="in_extra", height=80)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        host = st.text_input("대상 호스트", placeholder="was01.corp.local", key="diag_host")
+    with col2:
+        apache_path = st.text_input("Apache 홈 또는 httpd-mpm.conf 경로", value="/sw/apache", key="diag_apache")
+    with col3:
+        tomcat_path = st.text_input("Tomcat 홈 또는 tomcat.env 경로", value="/sw/tomcat", key="diag_tomcat")
 
-        if st.button("🚀 진단 및 4단계 플랜 산출", type="primary"):
-            raw = {k: st.session_state.get(f"in_{k}", "") for k in INPUT_KEYS}
-            if extra:
-                raw["extra.conf"] = extra
-            if not any(raw.values()):
-                st.warning("설정 원문을 하나 이상 입력하세요.")
-            else:
-                run_id = new_run_id()
-                st.session_state["run_id"] = run_id
-                st.session_state.pop("monitor", None)
-                st.session_state["plan_approved"] = False
-                inp = {
-                    "run_id": run_id,
-                    "raw_inputs": raw,
-                    "llm_enabled": s.llm_enabled,
-                    "options": {"interpret": s.interpret_enabled, "ramp_scale": s.plan_ramp_scale, "hold_sec": s.plan_hold_sec,
-                                "bucket_sec": s.bucket_sec, "dry_run": True},
-                }
-                with st.status("그래프 실행 중 (SC-001)…", expanded=True) as status:
-                    driver.drive_sync(graph, run_id, inp, status=status)
-                    status.update(label="진단 완료 — 플랜을 검토하세요", state="complete")
-                st.rerun()
+    if "diag_wrapper" not in st.session_state:
+        st.session_state["diag_wrapper"] = effective_ssh_wrapper_cmd() or DEFAULT_SSH_WRAPPER_CMD
+    with st.expander("SSH 래퍼 설정"):
+        st.markdown(
+            "사내 SSH 쉘 실행 프로그램을 `subprocess`로 호출합니다. "
+            "`{host}`와 `{path}`가 치환되며, 디렉터리만 주면 사내 표준 상대경로 "
+            "`shl/tomcat.env`, `conf/httpd-mpm.conf` 를 붙입니다."
+        )
+        wrapper = st.text_input(
+            "SSH 래퍼 명령 템플릿",
+            key="diag_wrapper",
+            help="환경변수 SSH_WRAPPER_CMD 또는 예: /opt/tools/sshrun {host} cat {path}",
+        )
+        timeout = st.number_input("수집 타임아웃(초)", min_value=5, max_value=120, value=DEFAULT_TIMEOUT_SEC, step=5)
+        update_settings(ssh_wrapper_cmd=wrapper.strip())
+
+    run_ssh, run_mock = st.columns(2)
+    ssh_clicked = run_ssh.button("SSH로 설정 수집 및 진단", type="primary", use_container_width=True)
+    mock_clicked = run_mock.button("샘플(Mock)로 미리보기", use_container_width=True)
+
+    host_s = (host or "").strip()
+    apache_s = (apache_path or "").strip() or "/sw/apache"
+    tomcat_s = (tomcat_path or "").strip() or "/sw/tomcat"
+    target = TargetInfo(host=host_s, apache_home=apache_s, tomcat_home=tomcat_s)
+
+    if ssh_clicked:
+        if not host_s:
+            st.error("대상 호스트를 입력하세요.")
+        else:
+            try:
+                with st.spinner(f"{host_s} 에서 tomcat.env / httpd-mpm.conf 수집 중…"):
+                    configs = fetch_from_homes(
+                        host_s,
+                        apache_s,
+                        tomcat_s,
+                        ssh_wrapper_cmd=wrapper,
+                        timeout=int(timeout),
+                    )
+                _run_diagnosis(
+                    graph,
+                    configs.to_raw_inputs(),
+                    f"SSH (`{host_s}`)",
+                    collected=configs.files,
+                    target=target,
+                )
+            except (RemoteConfigError, ValueError) as exc:
+                st.error(str(exc))
+                if isinstance(exc, RemoteConfigError) and exc.configs and exc.configs.errors:
+                    with st.expander("수집 실패 상세"):
+                        for path, err in exc.configs.errors.items():
+                            st.write(f"- `{path}`: {err}")
+
+    elif mock_clicked:
+        raw = _sample_raw(host_s, apache_s, tomcat_s)
+        mock_target = TargetInfo(
+            host=host_s or "was01.corp.local",
+            apache_home=apache_s,
+            tomcat_home=tomcat_s,
+        )
+        _run_diagnosis(graph, raw, "샘플(Mock)", collected=raw, target=mock_target)
+
+    collected = st.session_state.get("collected_files") or {}
+    if collected:
+        source = st.session_state.get("collect_source", "수집")
+        with st.expander("수집된 설정 원문", expanded=st.session_state.get("run_id") is None):
+            st.caption(f"{source} · host=`{host_s or '(없음)'}` · apache=`{apache_s}` · tomcat=`{tomcat_s}`")
+            for path, content in collected.items():
+                st.markdown(f"**`{path}`**")
+                st.code((content or "").strip() or "(empty)", language="bash")
 
     run_id = st.session_state.get("run_id")
     if not run_id:
-        st.info("설정 원문을 입력하고 진단을 실행하면 임계치와 4단계 플랜이 산출됩니다.")
+        st.info("호스트와 경로를 입력한 뒤 SSH로 설정을 수집하면 임계치와 4단계 플랜이 산출됩니다.")
         return
 
     snap = driver.snapshot(graph, run_id)
@@ -85,6 +158,10 @@ def render(graph) -> None:
     if "thresholds" not in vals:
         st.warning("아직 진단 결과가 없습니다.")
         return
+
+    source = st.session_state.get("collect_source")
+    if source:
+        st.success(f"{source} 수집 후 부하 플랜 산출이 완료되었습니다. 다음 탭으로 이동하세요.")
 
     cfg: ParsedConfig = vals["parsed_config"]
     thr = vals["thresholds"]

@@ -27,9 +27,9 @@ JMeter 없이도 번들 생성 + 외부 실행 결과(JTL) 업로드 분석(`bun
 | `JMETER_DOCKER_IMAGE`, `JMETER_REMOTE_HOSTS` | Docker / 분산(-R) 모드 | `justb4/jmeter:latest` / 없음 |
 | `RUNS_DIR` | 산출물·체크포인트 저장 위치 | `mw_perf_agent/runs` |
 | `ALLOWED_HOSTS_FILE` | 부하 허용 대상 목록 (preflight 차단 기준) | `config/allowed_hosts.txt` |
-| `SSH_WRAPPER_CMD` | 설정 파일 원격 수집용 읽기 전용 래퍼 | (없음) |
+| `SSH_WRAPPER_CMD` | SC-001 원격 수집용 읽기 전용 래퍼 (`{host}` `{path}`) | `ssh -o BatchMode=yes … {host} cat {path}` |
 
-모든 값은 사이드바에서도 바꿀 수 있고, 프로세스 수준 `Settings` 싱글톤에만 보관됩니다(그래프 상태/체크포인트에 비밀값이 들어가지 않음).
+모든 값은 사이드바(및 SC-001의 SSH 래퍼 설정)에서도 바꿀 수 있고, 프로세스 수준 `Settings` 싱글톤에만 보관됩니다(그래프 상태/체크포인트에 비밀값이 들어가지 않음). ① 진단 탭은 설정 원문을 붙여넣지 않고 호스트·Apache/Tomcat 경로로 SSH 수집합니다.
 
 ## 그래프 개요
 
