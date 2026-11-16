@@ -51,3 +51,14 @@ def no_llm():
     set_model_override(None)
     yield
     clear_model_override()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Write docs/nfr_verification.md from in-process measurements when any NFR/golden test ran."""
+    try:
+        from tests.nfr_results import RESULTS, maybe_write_report
+    except Exception:
+        return
+    if not RESULTS:
+        return
+    maybe_write_report()

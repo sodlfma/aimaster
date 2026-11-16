@@ -5,3 +5,4 @@ mw_perf_agent/runs/
 *.sqlite
 *.sqlite-journal
 .streamlit/secrets.toml
+mw_perf_agent/docs/nfr_last_run.json
