@@ -6,3 +6,6 @@ mw_perf_agent/runs/
 *.sqlite-journal
 .streamlit/secrets.toml
 mw_perf_agent/docs/nfr_last_run.json
+.env
+.env.*
+*.env

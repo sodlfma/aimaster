@@ -62,6 +62,8 @@ def render_markdown(env: dict[str, Any] | None = None) -> str:
     scenarios = _rows("scenario")
     nfr = _rows("nfr")
     golden = _rows("golden")
+    live = _rows("live")
+    live_metrics = _rows("live_metric")
     unverified = _rows("unverified")
 
     lines = [
@@ -147,7 +149,7 @@ def render_markdown(env: dict[str, Any] | None = None) -> str:
         "## 3. 품질 골든셋 (기대 출력 vs 실제 출력)",
         "",
         "정답률 벤치마크가 아니라, 결정론 경로와 가드레일이 **고정 입력에서 기대 계약을 지키는지**",
-        "비교한 소규모 세트입니다. 실제 상용 LLM API 품질 평가는 §4 미검증에 분리했습니다.",
+        "비교한 소규모 세트입니다. 실 LLM API 골든셋은 아래 §3-b 입니다.",
         "",
         "| ID | 항목 | 기대 출력 | 실제 출력 | 판정 |",
         "|---|---|---|---|---|",
@@ -167,6 +169,56 @@ def render_markdown(env: dict[str, Any] | None = None) -> str:
     else:
         lines.append("| — | — | — | — | 측정 없음 |")
     lines.append("")
+
+    lines += [
+        "## 3-b. 실 LLM API 골든셋",
+        "",
+        "Fake 모델이 아니라 `LLM_MODEL` + `LLM_API_KEY`로 실제 엔드포인트를 호출한 결과입니다.",
+        "키·프롬프트 원문은 기록하지 않습니다. 토큰은 제공자가 주면 `usage`, 없으면 `len//3` 근사입니다.",
+        "",
+    ]
+    if live_metrics:
+        lines += [
+            "| 노드 | 모델 | 지연 | 근사 입력 토큰 | 제공자 입력/출력 토큰 | 결과 |",
+            "|---|---|---|---|---|---|",
+        ]
+        for r in live_metrics:
+            pin, pout = r.get("provider_input_tokens"), r.get("provider_output_tokens")
+            usage = f"{pin}/{pout}" if pin is not None or pout is not None else "n/a"
+            lines.append(
+                "| {name} | {model} | {lat}ms | {approx} | {usage} | {result} |".format(
+                    name=_md_escape(r.get("name")),
+                    model=_md_escape(r.get("model")),
+                    lat=_md_escape(r.get("latency_ms")),
+                    approx=_md_escape(r.get("approx_input_tokens")),
+                    usage=_md_escape(usage),
+                    result="PASS" if r.get("passed") else "FAIL",
+                )
+            )
+        lines.append("")
+    if live:
+        lines += [
+            "| ID | 항목 | 기대 출력 | 실제 출력 | 판정 |",
+            "|---|---|---|---|---|",
+        ]
+        for r in live:
+            verdict = "일치" if r.get("passed") else "불일치"
+            lines.append(
+                "| {id} | {name} | {expected} | {actual} | {verdict} |".format(
+                    id=_md_escape(r.get("case_id", r.get("name"))),
+                    name=_md_escape(r.get("item", r.get("name"))),
+                    expected=_md_escape(r.get("expected")),
+                    actual=_md_escape(r.get("actual")),
+                    verdict=verdict,
+                )
+            )
+        lines.append("")
+        for r in live_metrics:
+            note = r.get("interpretation")
+            if note:
+                lines += [f"- **{r['name']}**: {note}", ""]
+    else:
+        lines += ["_이 세션에서 실 API 호출은 실행되지 않았습니다 (`pytest --run-live`)._", ""]
 
     lines += [
         "## 4. 미검증 / 범위 밖 항목",
@@ -194,8 +246,10 @@ def render_markdown(env: dict[str, Any] | None = None) -> str:
         "```bash",
         "cd mw_perf_agent",
         "python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_goals.py tests/test_quality_golden.py -q",
+        "# 실 LLM 호출 (키는 환경 변수로만, 저장소에 넣지 않음):",
+        "RUN_LIVE_LLM=1 NFR_WRITE_REPORT=1 python -m pytest tests/test_live_llm.py -q --run-live",
         "# 리포트 파일을 다시 쓰려면:",
-        "NFR_WRITE_REPORT=1 python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_goals.py tests/test_quality_golden.py -q",
+        "NFR_WRITE_REPORT=1 python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_goals.py tests/test_quality_golden.py tests/test_live_llm.py -q",
         "```",
         "",
         "산출물: `docs/nfr_verification.md`, `docs/nfr_last_run.json`.",

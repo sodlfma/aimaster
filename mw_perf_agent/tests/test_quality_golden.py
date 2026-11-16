@@ -221,19 +221,14 @@ def test_record_unverified_items():
     """Explicitly list what this suite does *not* claim to have measured."""
     items = [
         (
-            "실제 LLM API 품질 평가",
-            "Talent Lab/OpenAI를 호출하지 않음. Fake 모델은 스키마만 채우고 문장 품질을 판단하지 않음.",
-            "고정 프롬프트 3~5건을 실모델에 넣고 정확성/근거/환각 루브릭을 사람 2인이 채점",
+            "사람 평가 루브릭 (유용성/일관성)",
+            "실 API 골든셋은 스키마·계층·마스킹·호스트 강제 계약을 본다. 문장 품질 1~5점 사람 채점은 없음.",
+            "동일 입력 3회 일관성 + 루브릭 2인 평가를 후속으로 첨부",
         ),
         (
             "대규모 동시 사용자 부하 벤치마크",
             "JMeter 실부하·분산(-R)·Streamlit 다중 세션 TPS/오류율 assert가 없음. Fake JMeter만 사용.",
             "별도 부하기에서 Step4 목표 동시 사용자로 실측 후 이 표에 행 추가",
-        ),
-        (
-            "사람 평가 루브릭 (유용성/일관성)",
-            "진단·분석 리포트의 서술 품질은 규칙 계약(계층, verdict, 근거 필드)만 비교함.",
-            "루브릭 1~5점 × 일관성(동일 입력 3회) 프로토콜을 문서화하고 샘플을 첨부",
         ),
         (
             "체크포인트 대용량(JTL DataFrame) 저장 시간",
@@ -243,4 +238,4 @@ def test_record_unverified_items():
     ]
     for name, reason, follow in items:
         record("unverified", name, reason=reason, follow_up=follow)
-    assert len(items) == 4
+    assert len(items) == 3

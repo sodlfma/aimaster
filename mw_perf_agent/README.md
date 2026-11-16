@@ -77,6 +77,15 @@ NFR_WRITE_REPORT=1 python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_g
 
 실측 표는 `docs/nfr_verification.md`에 기록됩니다 (명세 §8 목표와 1:1). 미검증 항목은 같은 문서 §4에 분리되어 있습니다.
 
+실 LLM API 골든셋 (키는 환경 변수로만 주입, 저장소에 넣지 않음):
+
+```bash
+export LLM_MODEL=gpt-4.1          # Talent Lab 배포 이름 또는 openai:gpt-4o
+export LLM_API_KEY=atl-...        # 채팅/git에 남기지 말 것
+# export LLM_BASE_URL=https://skax.ai-talentlab.com   # atl- 키면 생략 가능
+RUN_LIVE_LLM=1 NFR_WRITE_REPORT=1 python -m pytest tests/test_live_llm.py -q --run-live
+```
+
 ## EC2 서버 셋팅
 
 에이전트(Streamlit)와 JMeter(Local 모드)를 한 대에 두고, 부하 대상 WAS/DB는 별도 서버에 두는 구성입니다. 측정 대상과 같은 인스턴스에 올리면 JMeter CPU 사용 때문에 결과가 오염됩니다.

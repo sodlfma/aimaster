@@ -53,6 +53,31 @@ def no_llm():
     clear_model_override()
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-live",
+        action="store_true",
+        default=False,
+        help="Call the real LLM API (requires LLM_MODEL and LLM_API_KEY).",
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "live: calls a real LLM API (opt-in)")
+    if config.getoption("--run-live"):
+        os.environ.setdefault("RUN_LIVE_LLM", "1")
+
+
+def pytest_collection_modifyitems(config, items):
+    run_live = bool(config.getoption("--run-live")) or os.environ.get("RUN_LIVE_LLM", "").strip().lower() in ("1", "true", "yes")
+    if run_live:
+        return
+    skip = pytest.mark.skip(reason="live LLM tests are opt-in: pytest --run-live (needs LLM_API_KEY)")
+    for item in items:
+        if "live" in item.keywords:
+            item.add_marker(skip)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Write docs/nfr_verification.md from in-process measurements when any NFR/golden test ran."""
     try:
