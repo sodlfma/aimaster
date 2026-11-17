@@ -1,0 +1,26 @@
+{
+  "kpi_full": {
+    "diagnose_seconds": 11.26,
+    "diagnose_minutes": 0.19,
+    "build_run_collect_seconds": 309.27,
+    "build_run_collect_minutes": 5.15,
+    "total_minutes": 5.34,
+    "scaled_users": [
+      20,
+      27,
+      125,
+      180
+    ],
+    "formula_users": [
+      40,
+      55,
+      250,
+      360
+    ],
+    "ok_jmeter": true,
+    "ok_report": true,
+    "analysis_source": "llm",
+    "run_id": "20261117_071852_0bc38f",
+    "error": ""
+  }
+}

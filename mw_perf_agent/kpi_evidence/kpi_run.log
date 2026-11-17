@@ -1,0 +1,33 @@
+LLM available: True route: Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview err: -
+[run 1] db-delay-breakpoint run_id=20261117_070908_571917 diagnose=12.71s build_run=124.49s jmeter=True report=True llm=llm
+[run 2] db-delay-breakpoint run_id=20261117_071125_7e774a diagnose=11.11s build_run=127.15s jmeter=True report=True llm=llm
+[run 3] db-delay-breakpoint run_id=20261117_071344_eb1909 diagnose=11.69s build_run=127.81s jmeter=True report=True llm=llm
+/agent/repos/aimaster/mw_perf_agent/.venv/lib/python3.12/site-packages/langchain_openai/chat_models/base.py:715: UserWarning: Invalid schema for OpenAI's structured output feature, which is the default method for `with_structured_output` as of langchain-openai==0.3. Specify `method="function_calling"` instead or update your schema. See supported schemas: https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+  warnings.warn(message)
+/agent/repos/aimaster/mw_perf_agent/.venv/lib/python3.12/site-packages/langchain_openai/chat_models/base.py:715: UserWarning: Invalid schema for OpenAI's structured output feature, which is the default method for `with_structured_output` as of langchain-openai==0.3. Specify `method="function_calling"` instead or update your schema. See supported schemas: https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+  warnings.warn(message)
+/agent/repos/aimaster/mw_perf_agent/.venv/lib/python3.12/site-packages/langchain_openai/chat_models/base.py:715: UserWarning: Invalid schema for OpenAI's structured output feature, which is the default method for `with_structured_output` as of langchain-openai==0.3. Specify `method="function_calling"` instead or update your schema. See supported schemas: https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+  warnings.warn(message)
+[run 4] alloc-memory-gc run_id=20261117_071604_5d38aa diagnose=12.41s build_run=131.6s jmeter=True report=True llm=llm
+{
+  "diagnose_minutes_avg": 0.2,
+  "diagnose_seconds_avg": 11.8,
+  "build_run_collect_minutes_avg": 2.11,
+  "build_run_collect_seconds_avg": 126.5,
+  "jmeter_cli_success": "3/3",
+  "load_and_llm_report_success": "3/3",
+  "formula_users_example": [
+    40,
+    55,
+    250,
+    360
+  ],
+  "scaled_users_example": [
+    10,
+    13,
+    62,
+    90
+  ],
+  "note_scale": "샘플 앱 안전 및 반복 측정을 위해 공식 산출 동시사용자에 ×0.25 배율을 적용하고 hold=15s 로 측정. 원본 공식 수치는 load_plan_users 에 기록."
+}
+wrote /agent/repos/aimaster/mw_perf_agent/kpi_evidence/kpi_summary.json

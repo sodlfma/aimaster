@@ -1,0 +1,438 @@
+{
+  "measured_at": "2026-11-17T07:18:28",
+  "host": "3.35.11.139",
+  "port": 8080,
+  "hold_sec": 15,
+  "scale": 0.25,
+  "n_primary": 3,
+  "llm_route": "Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview",
+  "records": [
+    {
+      "attempt": 1,
+      "scenario": "db-delay-breakpoint",
+      "run_id": "20261117_070908_571917",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_llm_interpret": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "load_plan_users": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "scaled_users": [
+        10,
+        13,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14509
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2264
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 3146
+        },
+        "bundle.zip": {
+          "exists": false,
+          "bytes": 0
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1162890
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1673
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1543
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2661
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 19495
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 539
+        },
+        "report/": {
+          "exists": true,
+          "bytes": 2919011
+        }
+      },
+      "error": "",
+      "llm_skipped": [],
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "times": {
+        "diagnose_sec": 12.71,
+        "build_run_analyze_sec": 124.49,
+        "total_sec": 137.21
+      }
+    },
+    {
+      "attempt": 2,
+      "scenario": "db-delay-breakpoint",
+      "run_id": "20261117_071125_7e774a",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_llm_interpret": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "load_plan_users": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "scaled_users": [
+        10,
+        13,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14509
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2264
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 3001
+        },
+        "bundle.zip": {
+          "exists": false,
+          "bytes": 0
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1165847
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1609
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1541
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 3079
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 19828
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        },
+        "report/": {
+          "exists": true,
+          "bytes": 2917710
+        }
+      },
+      "error": "",
+      "llm_skipped": [],
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "times": {
+        "diagnose_sec": 11.11,
+        "build_run_analyze_sec": 127.15,
+        "total_sec": 138.26
+      }
+    },
+    {
+      "attempt": 3,
+      "scenario": "db-delay-breakpoint",
+      "run_id": "20261117_071344_eb1909",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_llm_interpret": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "load_plan_users": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "scaled_users": [
+        10,
+        13,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14509
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2264
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 3136
+        },
+        "bundle.zip": {
+          "exists": false,
+          "bytes": 0
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1165844
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1671
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1542
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 3149
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 20059
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 539
+        },
+        "report/": {
+          "exists": true,
+          "bytes": 2917365
+        }
+      },
+      "error": "",
+      "llm_skipped": [],
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "times": {
+        "diagnose_sec": 11.69,
+        "build_run_analyze_sec": 127.81,
+        "total_sec": 139.51
+      }
+    },
+    {
+      "attempt": 4,
+      "scenario": "alloc-memory-gc",
+      "run_id": "20261117_071604_5d38aa",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_llm_interpret": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "load_plan_users": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "scaled_users": [
+        10,
+        13,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14565
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2271
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2941
+        },
+        "bundle.zip": {
+          "exists": false,
+          "bytes": 0
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 2968119
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1617
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1545
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2971
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 19898
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 539
+        },
+        "report/": {
+          "exists": true,
+          "bytes": 2919824
+        }
+      },
+      "error": "",
+      "llm_skipped": [
+        "llm_design_scenario"
+      ],
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "times": {
+        "diagnose_sec": 12.41,
+        "build_run_analyze_sec": 131.6,
+        "total_sec": 144.02
+      }
+    }
+  ],
+  "kpi": {
+    "diagnose_minutes_avg": 0.2,
+    "diagnose_seconds_avg": 11.8,
+    "build_run_collect_minutes_avg": 2.11,
+    "build_run_collect_seconds_avg": 126.5,
+    "jmeter_cli_success": "3/3",
+    "load_and_llm_report_success": "3/3",
+    "formula_users_example": [
+      40,
+      55,
+      250,
+      360
+    ],
+    "scaled_users_example": [
+      10,
+      13,
+      62,
+      90
+    ],
+    "note_scale": "샘플 앱 안전 및 반복 측정을 위해 공식 산출 동시사용자에 ×0.25 배율을 적용하고 hold=15s 로 측정. 원본 공식 수치는 load_plan_users 에 기록."
+  }
+}
