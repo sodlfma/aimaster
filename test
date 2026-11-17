@@ -1,0 +1,221 @@
+[webwas@ip-10-100-12-98 extra]$ cat httpd-mpm.conf 
+#
+# Server-Pool Management (MPM specific)
+# 
+
+#
+# PidFile: The file in which the server should record its process
+# identification number when it starts.
+#
+# Note that this is the default PidFile for most MPMs.
+#
+<IfModule !mpm_netware_module>
+    PidFile "/software/apache/servers/webnode1/logs/httpd.pid"
+</IfModule>
+
+#
+# Only one of the below sections will be relevant on your
+# installed httpd.  Use "apachectl -l" to find out the
+# active mpm.
+#
+
+# prefork MPM
+# StartServers: number of server processes to start
+# MinSpareServers: minimum number of server processes which are kept spare
+# MaxSpareServers: maximum number of server processes which are kept spare
+# MaxRequestWorkers: maximum number of server processes allowed to start
+# MaxConnectionsPerChild: maximum number of connections a server process serves
+#                         before terminating
+<IfModule mpm_prefork_module>
+    StartServers             5
+    MinSpareServers          5
+    MaxSpareServers         10
+    MaxRequestWorkers      250
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# worker MPM
+# StartServers: initial number of server processes to start
+# MinSpareThreads: minimum number of worker threads which are kept spare
+# MaxSpareThreads: maximum number of worker threads which are kept spare
+# ThreadsPerChild: constant number of worker threads in each server process
+# MaxRequestWorkers: maximum number of worker threads
+# MaxConnectionsPerChild: maximum number of connections a server process serves
+#                         before terminating
+<IfModule mpm_worker_module>
+    StartServers             4
+    ServerLimit             16
+    MinSpareThreads        100
+    MaxSpareThreads        250 
+    ThreadsPerChild         25
+    MaxRequestWorkers      400
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# event MPM
+# StartServers: initial number of server processes to start
+# MinSpareThreads: minimum number of worker threads which are kept spare
+# MaxSpareThreads: maximum number of worker threads which are kept spare
+# ThreadsPerChild: constant number of worker threads in each server process
+# MaxRequestWorkers: maximum number of worker threads
+# MaxConnectionsPerChild: maximum number of connections a server process serves
+#                         before terminating
+<IfModule mpm_event_module>
+    StartServers             4
+    ServerLimit             16
+    MinSpareThreads        100
+    MaxSpareThreads        250
+    ThreadsPerChild         25
+    MaxRequestWorkers      400
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# NetWare MPM
+# ThreadStackSize: Stack size allocated for each worker thread
+# StartThreads: Number of worker threads launched at server startup
+# MinSpareThreads: Minimum number of idle threads, to handle request spikes
+# MaxSpareThreads: Maximum number of idle threads
+# MaxThreads: Maximum number of worker threads alive at the same time
+# MaxConnectionsPerChild: Maximum  number of connections a thread serves. It
+#                         is recommended that the default value of 0 be set
+#                         for this directive on NetWare.  This will allow the
+#                         thread to continue to service requests indefinitely.
+<IfModule mpm_netware_module>
+    ThreadStackSize      65536
+    StartThreads           250
+    MinSpareThreads         25
+    MaxSpareThreads        250
+    MaxThreads            1000
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# OS/2 MPM
+# StartServers: Number of server processes to maintain
+# MinSpareThreads: Minimum number of idle threads per process, 
+#                  to handle request spikes
+# MaxSpareThreads: Maximum number of idle threads per process
+# MaxConnectionsPerChild: Maximum number of connections per server process
+<IfModule mpm_mpmt_os2_module>
+    StartServers             2
+    MinSpareThreads          5
+    MaxSpareThreads         10
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# WinNT MPM
+# ThreadsPerChild: constant number of worker threads in the server process
+# MaxConnectionsPerChild: maximum number of connections a server process serves
+<IfModule mpm_winnt_module>
+    ThreadsPerChild        150
+    MaxConnectionsPerChild   0
+</IfModule>
+
+# The maximum number of free Kbytes that every allocator is allowed
+# to hold without calling free(). In threaded MPMs, every thread has its own
+# allocator. When not set, or when set to zero, the threshold will be set to
+# unlimited.
+<IfModule !mpm_netware_module>
+    MaxMemFree            2048
+</IfModule>
+<IfModule mpm_netware_module>
+    MaxMemFree             100
+</IfModule>
+
+[webwas@ip-10-100-12-98 shl]$ cat tomcat.env
+##############################################
+# instance    : wasnode1
+# description : instance environment
+# date        : 2018-05-23
+##############################################
+
+##############################################
+# WARNING : MUST Set SERVER_NAME with same name of current directory
+##############################################
+SERVER_NAME="wasnode1"
+TOMCAT_USER="webwas"
+#DATE=`date "+%F_%T"`
+DATE=`date "+%Y%m%d-%H%M%S"`
+UNAME=`id -u -n`
+RETRY_CNT=0
+START_STOP_LOG=/log_data/auto_restart/${SERVER_NAME}_restart.log
+
+##############################################
+# Catalina Environment
+##############################################
+export CATALINA_HOME="/software/tomcat"
+export CATALINA_BASE="$CATALINA_HOME/servers/$SERVER_NAME"
+export CATALINA_OPTS="-Denv=product -Denv.servername=$SERVER_NAME -Djava.security.egd=file:/dev/./urandom"
+export CATALINA_OUT="$CATALINA_BASE/logs/catalina.out"
+export CATALINA_PID="$CATALINA_BASE/catalina.pid"
+
+# JMX
+#export CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.management.jmxremote"
+#export CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.management.jmxremote.port=7191"
+#export CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+#export CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
+
+##############################################
+# Java JVM Environment
+##############################################
+
+# JAVA_OPTS
+JAVA_OPTS="-D$SERVER_NAME"
+JAVA_OPTS="$JAVA_OPTS -server"
+JAVA_OPTS="$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m"
+JAVA_OPTS="$JAVA_OPTS -XX:SurvivorRatio=8 -XX:ParallelGCThreads=4 -XX:+DisableExplicitGC -XX:+UseParallelGC -XX:-UseAdaptiveSizePolicy"
+JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+heap=trace:file=$CATALINA_BASE/logs/gclog/gc_${SERVER_NAME}_$DATE.log:time"
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$CATALINA_BASE/logs/heapdump"
+JAVA_OPTS="$JAVA_OPTS -XX:+DoEscapeAnalysis"
+JAVA_OPTS="$JAVA_OPTS -XX:+UseCompressedOops"
+
+# AWT headless
+JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
+
+# Using only IPv4
+JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
+
+# IP Definition
+#JAVA_OPTS="$JAVA_OPTS -Dtomcat.bind.addr=0.0.0.0"
+
+# Port Definition
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.port.shutdown=8105"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.port.http=8180"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.port.https=8443"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.port.ajp=8109"
+
+# Catalina Connector Attribute
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.address=0.0.0.0"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.secretRequired=false"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.URIEncoding=UTF-8"
+#JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.URIEncoding=EUC-KR"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.connectionTimeout=60000"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.keepAliveTimeout=60000"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.maxPostSize=2097152"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.maxThreads=200"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.connector.minSpareThreads=200"
+
+##############################################
+# WARNING :
+# In order to use the Session Clustering,
+# then conf/server.xml.cluster file should be overwritten as conf/server.xml
+#
+# Session Clustering
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.engine.jvmRoute=$SERVER_NAME"
+#JAVA_OPTS="$JAVA_OPTS -Dtomcat.engine.sessionCookieName=JSESSIONID"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.cluster.member.address=228.0.0.1"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.cluster.member.port=45564"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.cluster.receiver.address=0.0.0.0"
+JAVA_OPTS="$JAVA_OPTS -Dtomcat.cluster.receiver.port=5001"
+
+# Using Tomcat Native
+JAVA_OPTS="$JAVA_OPTS -Djava.library.path=$CATALINA_HOME/lib"
+
+# Catalina Temp Path
+JAVA_OPTS="$JAVA_OPTS -Djava.io.tmpdir=$CATALINA_BASE/logs/temp"
+
+##############################################
+# Custom Variables Here
+
+export JAVA_OPTS
+
+# EOF
