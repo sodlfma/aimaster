@@ -235,7 +235,12 @@ def test_record_unverified_items():
             "NFR은 '대용량 제외'가 전제. 경로만 저장하는 설계라 DataFrame put은 측정하지 않음.",
             "의도적으로 제외. 회귀 시 state에 DF가 들어가지 않는지 스키마 테스트로 유지",
         ),
+        (
+            "HITL 사람 판단 품질 (승인·거절의 적절성)",
+            "게이트 정지·호스트 강제·차단율·재개 지연은 측정. 운영자가 플랜을 옳게 고쳤는지는 루브릭 없음.",
+            "운영 리뷰 로그의 오승인/오거절 건수를 후속으로 첨부",
+        ),
     ]
     for name, reason, follow in items:
         record("unverified", name, reason=reason, follow_up=follow)
-    assert len(items) == 3
+    assert len(items) == 4

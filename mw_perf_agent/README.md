@@ -72,7 +72,7 @@ python -m pytest tests -q
 정량 NFR · 전/후 시나리오 · 품질 골든셋만 따로 돌리려면:
 
 ```bash
-NFR_WRITE_REPORT=1 python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_goals.py tests/test_quality_golden.py -q
+NFR_WRITE_REPORT=1 python -m pytest tests/test_nfr_scenarios.py tests/test_nfr_goals.py tests/test_quality_golden.py tests/test_nfr_hitl.py -q
 ```
 
 실측 표는 `docs/nfr_verification.md`에 기록됩니다 (명세 §8 목표와 1:1). 미검증 항목은 같은 문서 §4에 분리되어 있습니다.
