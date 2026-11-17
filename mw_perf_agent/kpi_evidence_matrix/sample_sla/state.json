@@ -1,0 +1,511 @@
+{
+  "run_id": "20261117_075235_90f87a",
+  "llm_enabled": true,
+  "options": {
+    "interpret": true,
+    "ramp_scale": 1.0,
+    "hold_sec": 15,
+    "bucket_sec": 5,
+    "dry_run": true,
+    "scenario_type": "sla",
+    "n_target": 40,
+    "spike_ramp_sec": 2,
+    "jmeter_overrides": {
+      "target.connect_timeout": "5000",
+      "target.response_timeout": "60000"
+    }
+  },
+  "target_info": {
+    "host": "3.35.11.139",
+    "apache_home": "/software/apache/servers/webnode1/conf/extra/httpd-mpm.conf",
+    "tomcat_home": "/software/tomcat/servers/wasnode1",
+    "instances": []
+  },
+  "parsed_config": {
+    "mpm_module": "event",
+    "max_request_workers": 400,
+    "threads_per_child": 150,
+    "tomcat_max_threads": 200,
+    "tomcat_accept_count": 100,
+    "tomcat_port": 45564,
+    "jvm_xmx_mb": 1024,
+    "jvm_xms_mb": 1024,
+    "gc_type": "ParallelGC",
+    "dbcp_max_total": 100,
+    "dbcp_max_wait_ms": 60000,
+    "source": "regex+llm",
+    "confidence": 1.0,
+    "evidence": {
+      "threads_per_child": "ThreadsPerChild        150",
+      "max_request_workers": "MaxRequestWorkers      400",
+      "mpm_module": "<IfModule mpm_event_module>",
+      "tomcat_max_threads": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\"",
+      "tomcat_port": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\"",
+      "dbcp_max_wait_ms": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.connectionTimeout=60000\"",
+      "jvm_xmx_mb": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\"",
+      "jvm_xms_mb": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\"",
+      "gc_type": "JAVA_OPTS=\"$JAVA_OPTS -XX:SurvivorRatio=8 -XX:ParallelGCThreads=4 -XX:+DisableExplicitGC -XX:+UseParallelGC -XX:-UseAdaptiveSizePolicy\"",
+      "tomcat_accept_count": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\"",
+      "dbcp_max_total": "JAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=100\""
+    }
+  },
+  "parsed_config_llm": {
+    "mpm_module": null,
+    "max_request_workers": null,
+    "threads_per_child": null,
+    "tomcat_max_threads": null,
+    "tomcat_accept_count": 100,
+    "tomcat_port": null,
+    "jvm_xmx_mb": null,
+    "jvm_xms_mb": null,
+    "gc_type": null,
+    "dbcp_max_total": 100,
+    "dbcp_max_wait_ms": null,
+    "source": "llm",
+    "confidence": 0.0,
+    "evidence": {
+      "tomcat_accept_count": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\"",
+      "dbcp_max_total": "JAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=100\""
+    }
+  },
+  "thresholds": {
+    "t_db_lock": 100,
+    "t_queue": 200,
+    "t_drop": 300,
+    "web_cap": 400,
+    "formulas": {
+      "t_db_lock": "100 (dbcp.maxTotal) = 100",
+      "t_queue": "200 (tomcat.maxThreads) = 200",
+      "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+      "web_cap": "400 (Apache MaxRequestWorkers)"
+    }
+  },
+  "load_plan": {
+    "steps": [
+      {
+        "name": "S1 (50% 목표)",
+        "target_concurrency": 5,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "목표의 50% 워밍업, 정상 (베이스라인)"
+      },
+      {
+        "name": "S2 (목표 구간)",
+        "target_concurrency": 10,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "목표 동시접속자 구간. 평균 응답시간(TPS, Latency) 충족 여부"
+      },
+      {
+        "name": "S3 (여유율)",
+        "target_concurrency": 12,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "목표 대비 20% 여유율 검증"
+      }
+    ],
+    "total_duration_sec": 75,
+    "scenario_type": "sla",
+    "scenario_label": "목표 SLA 검증 테스트",
+    "purpose": "인프라 한계와 무관하게 비즈니스 목표 동시접속자(N_target) 수용 가능 여부 확인 [KPI scale×0.25, hold=15s]",
+    "n_target": 40,
+    "verification_points": [
+      "목표 부하에서의 평균 응답시간(TPS, Latency) 충족 여부 (단, N_target > T_db_lock 시 사전 경고)"
+    ]
+  },
+  "diagnosis_report": {
+    "summary": "부하가 증가할 경우, 먼저 DB 커넥션 풀(dbcp_max_total=100)에서 병목이 발생하며, 그 다음 Tomcat의 maxThreads(200)와 acceptCount(100) 조합에서 대기열이 형성됩니다. 최종적으로 Apache의 MaxRequestWorkers(400)에서 전체 동시 처리 한계에 도달합니다. 각 계층의 임계치는 DB 100, WAS 200(큐잉), WAS 300(드롭), Web 400입니다.",
+    "bottleneck_order": [
+      "db",
+      "was",
+      "web"
+    ],
+    "antipatterns": [],
+    "checklist": [
+      "jstat -gcutil로 JVM GC 및 Heap 사용률 모니터링",
+      "DBCP active/idle 커넥션 수 실시간 확인",
+      "Tomcat thread pool (currentThreadsBusy, currentThreadCount) 모니터링",
+      "netstat로 45564 포트의 SYN_RECV/backlog 확인",
+      "Apache error_log에서 worker exhaustion 및 502/503 에러 감시"
+    ],
+    "recommendations": [
+      {
+        "component": "dbcp",
+        "parameter": "maxTotal",
+        "current": "100",
+        "proposed": "120",
+        "rationale": "목표 동시접속자(N_target=40) 대비 충분하나, 여유율(20%) 구간(S3)에서 커넥션 부족 가능성 완화",
+        "risk": "DB 부하 증가로 인한 리소스 고갈 가능성. DB 서버의 커넥션 한계 확인 필요"
+      },
+      {
+        "component": "tomcat",
+        "parameter": "maxThreads",
+        "current": "200",
+        "proposed": "250",
+        "rationale": "WAS 계층의 큐잉 임계치(T_queue=200) 초과 시점 지연 완화 및 처리량 증가 기대",
+        "risk": "JVM Heap 및 OS thread 리소스 부족에 따른 성능 저하 또는 OutOfMemory 위험"
+      },
+      {
+        "component": "tomcat",
+        "parameter": "acceptCount",
+        "current": "100",
+        "proposed": "150",
+        "rationale": "동시 접속 폭주 시 대기열 확장으로 요청 드롭 최소화",
+        "risk": "대기열 과도 확장 시 응답 지연 증가 및 클라이언트 타임아웃 발생 가능"
+      },
+      {
+        "component": "apache",
+        "parameter": "MaxRequestWorkers",
+        "current": "400",
+        "proposed": "450",
+        "rationale": "Web 계층의 동시 처리 한계 상향으로 WAS 확장 효과 반영",
+        "risk": "OS file descriptor 및 worker thread 리소스 초과로 인한 Apache 장애 가능"
+      },
+      {
+        "component": "jvm",
+        "parameter": "-Xmx",
+        "current": "1024MB",
+        "proposed": "1536MB",
+        "rationale": "Tomcat maxThreads/acceptCount 상향 시 JVM Heap 부족 방지",
+        "risk": "물리 메모리 한계 초과 시 시스템 스와핑 및 전체 성능 저하"
+      }
+    ],
+    "rule_findings": [],
+    "source": "llm"
+  },
+  "scenario_input": {
+    "kind": "url",
+    "payload": "http://3.35.11.139:8080/api/perf/db-delay?holdMs=300",
+    "method": "GET",
+    "body": null,
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "host": "3.35.11.139",
+    "port": 8080,
+    "protocol": "http",
+    "think_time_ms": 0
+  },
+  "scenario_spec": {
+    "name": "sla-1",
+    "protocol": "http",
+    "host": "3.35.11.139",
+    "port": 8080,
+    "default_headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "requests": [
+      {
+        "label": "sla",
+        "method": "GET",
+        "path": "/api/perf/db-delay?holdMs=300",
+        "headers": {},
+        "body": null,
+        "extract": [],
+        "assertions": [
+          {
+            "kind": "response_code",
+            "expected": "200"
+          }
+        ]
+      }
+    ],
+    "think_time_ms": 0
+  },
+  "bundle": {
+    "jmx": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/plan.jmx",
+    "properties": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/user.properties",
+    "run_sh": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/run.sh",
+    "plan_json": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/plan.json",
+    "readme": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/README.md",
+    "zip": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/mw_perf_3.35.11.139_20261117_0752.zip"
+  },
+  "validation": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "well_formed",
+        "ok": true,
+        "detail": "XML well-formed"
+      },
+      {
+        "name": "structure",
+        "ok": true,
+        "detail": "structure ok (3 ThreadGroups, 3 samplers)"
+      },
+      {
+        "name": "dry_run",
+        "ok": true,
+        "detail": "dry-run ok (1 thread × 1s per step)",
+        "executed": true
+      }
+    ],
+    "errors": []
+  },
+  "error_explanation": null,
+  "run_mode": "local",
+  "preflight": [
+    {
+      "name": "jmeter_installed",
+      "ok": true,
+      "detail": "JMeter 5.6.3",
+      "blocking": false
+    },
+    {
+      "name": "allowed_host",
+      "ok": true,
+      "detail": "3.35.11.139 허용 목록에 있음",
+      "blocking": true
+    },
+    {
+      "name": "target_reachable",
+      "ok": true,
+      "detail": "3.35.11.139:8080 TCP 연결 성공",
+      "blocking": false
+    },
+    {
+      "name": "load_capacity",
+      "ok": true,
+      "detail": "최대 동시 스레드 12 (단일 부하기 권장 상한 1000)",
+      "blocking": false
+    },
+    {
+      "name": "jmx_validated",
+      "ok": true,
+      "detail": "JMX 3단계 검증 통과",
+      "blocking": true
+    }
+  ],
+  "run_result": {
+    "run_id": "20261117_075235_90f87a",
+    "jmx_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/plan.jmx",
+    "jtl_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/result.jtl",
+    "report_dir": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/report",
+    "log_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/jmeter.log",
+    "exit_code": 0,
+    "stopped": false,
+    "started_at": "2026-11-17T07:52:54.725265",
+    "finished_at": "2026-11-17T07:54:13.572792"
+  },
+  "jtl_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/result.jtl",
+  "statistics": {
+    "Total": {
+      "transaction": "Total",
+      "sampleCount": 1164,
+      "errorCount": 0,
+      "errorPct": 0.0,
+      "meanResTime": 482.67353951890016,
+      "medianResTime": 478.0,
+      "minResTime": 474.0,
+      "maxResTime": 673.0,
+      "pct1ResTime": 482.0,
+      "pct2ResTime": 483.0,
+      "pct3ResTime": 660.0499999999997,
+      "throughput": 15.25916992213104,
+      "receivedKBytesPerSec": 3.6959258696350386,
+      "sentKBytesPerSec": 3.114420423559949
+    },
+    "sla": {
+      "transaction": "sla",
+      "sampleCount": 1164,
+      "errorCount": 0,
+      "errorPct": 0.0,
+      "meanResTime": 482.67353951890016,
+      "medianResTime": 478.0,
+      "minResTime": 474.0,
+      "maxResTime": 673.0,
+      "pct1ResTime": 482.0,
+      "pct2ResTime": 483.0,
+      "pct3ResTime": 660.0499999999997,
+      "throughput": 15.25916992213104,
+      "receivedKBytesPerSec": 3.6959258696350386,
+      "sentKBytesPerSec": 3.114420423559949
+    }
+  },
+  "gc_input": null,
+  "bucket_series_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/buckets.csv",
+  "step_summary": [
+    {
+      "step": "S1 (50% 목표)",
+      "target_concurrency": 5,
+      "expected_symptom": "목표의 50% 워밍업, 정상 (베이스라인)",
+      "start_ms": 1794901975620,
+      "end_ms": 1794902001185,
+      "duration_s": 25.6,
+      "samples": 220,
+      "tps": 8.61,
+      "avg_ms": 482.1,
+      "p95_ms": 483.0,
+      "p99_ms": 655.0,
+      "err_rate": 0.0,
+      "http_503": 0,
+      "max_active": 5
+    },
+    {
+      "step": "S2 (목표 구간)",
+      "target_concurrency": 10,
+      "expected_symptom": "목표 동시접속자 구간. 평균 응답시간(TPS, Latency) 충족 여부",
+      "start_ms": 1794902000998,
+      "end_ms": 1794902026640,
+      "duration_s": 25.6,
+      "samples": 430,
+      "tps": 16.77,
+      "avg_ms": 482.8,
+      "p95_ms": 483.0,
+      "p99_ms": 655.7,
+      "err_rate": 0.0,
+      "http_503": 0,
+      "max_active": 10
+    },
+    {
+      "step": "S3 (여유율)",
+      "target_concurrency": 12,
+      "expected_symptom": "목표 대비 20% 여유율 검증",
+      "start_ms": 1794902026458,
+      "end_ms": 1794902052087,
+      "duration_s": 25.6,
+      "samples": 514,
+      "tps": 20.06,
+      "avg_ms": 482.8,
+      "p95_ms": 483.0,
+      "p99_ms": 658.6,
+      "err_rate": 0.0,
+      "http_503": 0,
+      "max_active": 12
+    }
+  ],
+  "gc_series_path": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/gc.csv",
+  "anomalies": [],
+  "analysis_report": {
+    "headline": "모든 부하 단계에서 TPS, 응답시간, 에러율, 503 발생 모두 정상 범위로 나타났으며, 병목 징후나 GC/503 연계 이슈는 관찰되지 않았습니다.",
+    "primary_bottleneck": {
+      "layer": "none",
+      "confidence": 1.0,
+      "evidence": [
+        "S1~S3 모든 구간에서 err_rate=0.0, http_503=0, p99_ms<700ms로 안정적",
+        "max_active가 target_concurrency와 일치하며 자원 한계 도달 없음",
+        "GC, anomaly, overlap 데이터에서 이슈 없음"
+      ]
+    },
+    "prediction_vs_actual": [
+      {
+        "step": "S1 (50% 목표)",
+        "predicted": "목표의 50% 워밍업, 정상 (베이스라인)",
+        "actual": "TPS 8.61, p99 655ms, 에러율 0%, 503 없음",
+        "verdict": "match"
+      },
+      {
+        "step": "S2 (목표 구간)",
+        "predicted": "목표 동시접속자 구간. 평균 응답시간(TPS, Latency) 충족 여부",
+        "actual": "TPS 16.77, p99 655.7ms, 에러율 0%, 503 없음",
+        "verdict": "match"
+      },
+      {
+        "step": "S3 (여유율)",
+        "predicted": "목표 대비 20% 여유율 검증",
+        "actual": "TPS 20.06, p99 658.6ms, 에러율 0%, 503 없음",
+        "verdict": "match"
+      }
+    ],
+    "correlations": [
+      "bucket_start_ms 1794901975000~1794902050000 구간에서 모든 step에서 err_rate=0, http_503=0, p99_ms 483~668ms로 지연/에러/503 동시 발생 없음",
+      "GC 데이터 없음, anomalies/overlaps 없음으로 Full GC/STW와 지연·503 연계 증거 없음"
+    ],
+    "recommendations": [],
+    "next_plan": {
+      "steps": [
+        {
+          "name": "S1 (50% 목표)",
+          "target_concurrency": 5,
+          "ramp_up_sec": 5,
+          "hold_sec": 25,
+          "expected_symptom": "목표의 50% 워밍업, 정상 (베이스라인)"
+        },
+        {
+          "name": "S2 (목표 구간)",
+          "target_concurrency": 10,
+          "ramp_up_sec": 5,
+          "hold_sec": 25,
+          "expected_symptom": "목표 동시접속자 구간. 평균 응답시간(TPS, Latency) 충족 여부"
+        },
+        {
+          "name": "S3 (여유율)",
+          "target_concurrency": 12,
+          "ramp_up_sec": 5,
+          "hold_sec": 25,
+          "expected_symptom": "목표 대비 20% 여유율 검증"
+        }
+      ],
+      "total_duration_sec": 90,
+      "scenario_type": "sla",
+      "scenario_label": "기본 SLA 검증",
+      "purpose": "정상 처리 및 여유율 검증",
+      "n_target": 10,
+      "verification_points": [
+        "TPS, p99, 에러율, 503 정상 범위 유지"
+      ]
+    },
+    "source": "llm"
+  },
+  "warnings": [
+    "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다."
+  ],
+  "llm_skipped": [],
+  "llm_calls": [
+    {
+      "node": "llm_extract_config",
+      "prompt": "extract_config",
+      "prompt_version": "2.0",
+      "model": "gpt-4.1",
+      "approx_input_tokens": 3188,
+      "latency_ms": 1761,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "node": "llm_interpret_diagnosis",
+      "prompt": "interpret_diagnosis",
+      "prompt_version": "2.0",
+      "model": "gpt-4.1",
+      "approx_input_tokens": 533,
+      "latency_ms": 8352,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "node": "llm_analyze_run",
+      "prompt": "analyze_run",
+      "prompt_version": "2.0",
+      "model": "gpt-4.1",
+      "approx_input_tokens": 1056,
+      "latency_ms": 10645,
+      "ok": true,
+      "error": ""
+    }
+  ],
+  "node_log": [
+    "ingest_inputs: run_id=20261117_075235_90f87a",
+    "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+    "llm_extract_config: ok (1761ms, ~3188 tok, attempt 1)",
+    "merge_validate: +2 from llm, confidence=1.0",
+    "compute_thresholds: 100/200/300",
+    "build_load_plan: sla [20, 40, 48]",
+    "llm_interpret_diagnosis: ok (8352ms, ~533 tok, attempt 1)",
+    "gate_review_plan: resumed",
+    "scenario_from_url: http://3.35.11.139:8080 1 req",
+    "gate_review_scenario: resumed",
+    "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/plan.jmx",
+    "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']",
+    "gate_confirm_run: resumed mode=local",
+    "preflight: blocked=[]",
+    "run_jmeter: exit=0 stopped=False",
+    "collect_results: jtl=/agent/repos/aimaster/mw_perf_agent/kpi_evidence_matrix/runs/20261117_075235_90f87a/result.jtl",
+    "aggregate_jtl: 1164 samples → 16 buckets",
+    "parse_gc: 0 rows",
+    "detect_anomalies: Counter()",
+    "compress_context: ~483 tokens",
+    "llm_analyze_run: ok (10645ms, ~1056 tok, attempt 1)"
+  ]
+}

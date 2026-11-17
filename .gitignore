@@ -9,3 +9,4 @@ mw_perf_agent/.venv/
 mw_perf_agent/jmeter.log
 mw_perf_agent/kpi_evidence/runs/
 mw_perf_agent/kpi_evidence_full/
+mw_perf_agent/kpi_evidence_matrix/runs/

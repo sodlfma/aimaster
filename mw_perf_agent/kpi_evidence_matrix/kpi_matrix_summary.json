@@ -1,0 +1,960 @@
+{
+  "measured_at": "2026-11-17T07:58:02",
+  "host": "3.35.11.139",
+  "port": 8080,
+  "hold_sec": 15,
+  "scale": 0.25,
+  "n_per_type": 3,
+  "ssh_config": true,
+  "llm_route": "Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview",
+  "overall": {
+    "jmeter_cli_success": "9/9",
+    "load_and_llm_report_success": "9/9",
+    "gc_capture_success": "9/9"
+  },
+  "by_type": {
+    "breakpoint": {
+      "n": 3,
+      "jmeter_cli_success": "3/3",
+      "load_and_llm_report_success": "3/3",
+      "gc_capture_success": "3/3",
+      "diagnose_seconds_avg": 10.0,
+      "diagnose_minutes_avg": 0.17,
+      "build_run_collect_seconds_avg": 130.1,
+      "build_run_collect_minutes_avg": 2.17,
+      "formula_users_example": [
+        80,
+        110,
+        250,
+        360
+      ],
+      "scaled_users_example": [
+        20,
+        27,
+        62,
+        90
+      ]
+    },
+    "spike": {
+      "n": 3,
+      "jmeter_cli_success": "3/3",
+      "load_and_llm_report_success": "3/3",
+      "gc_capture_success": "3/3",
+      "diagnose_seconds_avg": 9.7,
+      "diagnose_minutes_avg": 0.16,
+      "build_run_collect_seconds_avg": 93.3,
+      "build_run_collect_minutes_avg": 1.56,
+      "formula_users_example": [
+        25,
+        390,
+        25
+      ],
+      "scaled_users_example": [
+        6,
+        97,
+        98
+      ]
+    },
+    "sla": {
+      "n": 3,
+      "jmeter_cli_success": "3/3",
+      "load_and_llm_report_success": "3/3",
+      "gc_capture_success": "3/3",
+      "diagnose_seconds_avg": 9.6,
+      "diagnose_minutes_avg": 0.16,
+      "build_run_collect_seconds_avg": 98.8,
+      "build_run_collect_minutes_avg": 1.65,
+      "formula_users_example": [
+        20,
+        40,
+        48
+      ],
+      "scaled_users_example": [
+        5,
+        10,
+        12
+      ]
+    }
+  },
+  "records": [
+    {
+      "scenario_type": "breakpoint",
+      "attempt": 1,
+      "run_id": "20261117_074021_9562bb",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        80,
+        110,
+        250,
+        360
+      ],
+      "scaled_users": [
+        20,
+        27,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14459
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2244
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2695
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1247235
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1608
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1543
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 3363
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 19853
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 10.1,
+        "build_run_analyze_sec": 131.09,
+        "total_sec": 141.19
+      }
+    },
+    {
+      "scenario_type": "breakpoint",
+      "attempt": 2,
+      "run_id": "20261117_074243_5ac6be",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        80,
+        110,
+        250,
+        360
+      ],
+      "scaled_users": [
+        20,
+        27,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14459
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2244
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2689
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1247961
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1678
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1541
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2808
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 18990
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 9.33,
+        "build_run_analyze_sec": 128.75,
+        "total_sec": 138.08
+      }
+    },
+    {
+      "scenario_type": "breakpoint",
+      "attempt": 3,
+      "run_id": "20261117_074502_2847c6",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        80,
+        110,
+        250,
+        360
+      ],
+      "scaled_users": [
+        20,
+        27,
+        62,
+        90
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 14459
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1255
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2244
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 3010
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 1247830
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1678
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1543
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 3030
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 19741
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 10.48,
+        "build_run_analyze_sec": 130.5,
+        "total_sec": 140.98
+      }
+    },
+    {
+      "scenario_type": "spike",
+      "attempt": 1,
+      "run_id": "20261117_074724_18bf41",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        25,
+        390,
+        25
+      ],
+      "scaled_users": [
+        6,
+        97,
+        98
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11360
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1155
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2111
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 3067
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 2233851
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1107
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1184
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2355
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 18273
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/alloc-memory?allocMb=20&leak=false",
+      "times": {
+        "diagnose_sec": 9.83,
+        "build_run_analyze_sec": 91.54,
+        "total_sec": 101.37
+      }
+    },
+    {
+      "scenario_type": "spike",
+      "attempt": 2,
+      "run_id": "20261117_074906_58a335",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        50,
+        390,
+        50
+      ],
+      "scaled_users": [
+        12,
+        97,
+        98
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11361
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1156
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2115
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2621
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 2305855
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1049
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1187
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2666
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 18317
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/alloc-memory?allocMb=20&leak=false",
+      "times": {
+        "diagnose_sec": 8.92,
+        "build_run_analyze_sec": 93.01,
+        "total_sec": 101.93
+      }
+    },
+    {
+      "scenario_type": "spike",
+      "attempt": 3,
+      "run_id": "20261117_075048_cea575",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        25,
+        390,
+        25
+      ],
+      "scaled_users": [
+        6,
+        97,
+        98
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11360
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1155
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2111
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2815
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 2245608
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1109
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1183
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2870
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 18777
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/alloc-memory?allocMb=20&leak=false",
+      "times": {
+        "diagnose_sec": 10.29,
+        "build_run_analyze_sec": 95.36,
+        "total_sec": 105.65
+      }
+    },
+    {
+      "scenario_type": "sla",
+      "attempt": 1,
+      "run_id": "20261117_075235_90f87a",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        20,
+        40,
+        48
+      ],
+      "scaled_users": [
+        5,
+        10,
+        12
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11299
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1172
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2106
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2774
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 158645
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1166
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1194
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2153
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 17789
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 10.14,
+        "build_run_analyze_sec": 98.83,
+        "total_sec": 108.97
+      }
+    },
+    {
+      "scenario_type": "sla",
+      "attempt": 2,
+      "run_id": "20261117_075424_1fb8ac",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        20,
+        40,
+        48
+      ],
+      "scaled_users": [
+        5,
+        10,
+        12
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11299
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1172
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2106
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2729
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 158374
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1225
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1194
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2387
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 18010
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 9.5,
+        "build_run_analyze_sec": 98.85,
+        "total_sec": 108.35
+      }
+    },
+    {
+      "scenario_type": "sla",
+      "attempt": 3,
+      "run_id": "20261117_075614_f556d6",
+      "ok_jmeter": true,
+      "ok_report": true,
+      "ok_llm_analyze": true,
+      "ok_ssh_config": true,
+      "ok_gc": true,
+      "jmeter_exit": 0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "formula_users": [
+        20,
+        40,
+        48
+      ],
+      "scaled_users": [
+        5,
+        10,
+        12
+      ],
+      "artifacts": {
+        "plan.jmx": {
+          "exists": true,
+          "bytes": 11299
+        },
+        "user.properties": {
+          "exists": true,
+          "bytes": 1172
+        },
+        "run.sh": {
+          "exists": true,
+          "bytes": 796
+        },
+        "plan.json": {
+          "exists": true,
+          "bytes": 2103
+        },
+        "README.md": {
+          "exists": true,
+          "bytes": 2790
+        },
+        "result.jtl": {
+          "exists": true,
+          "bytes": 158366
+        },
+        "buckets.csv": {
+          "exists": true,
+          "bytes": 1160
+        },
+        "gc.csv": {
+          "exists": true,
+          "bytes": 51
+        },
+        "gc_jstat.txt": {
+          "exists": true,
+          "bytes": 917
+        },
+        "step_summary.json": {
+          "exists": true,
+          "bytes": 1194
+        },
+        "report.md": {
+          "exists": true,
+          "bytes": 2216
+        },
+        "state.json": {
+          "exists": true,
+          "bytes": 17590
+        },
+        "llm_calls.jsonl": {
+          "exists": true,
+          "bytes": 538
+        }
+      },
+      "diagnosis_source": "llm",
+      "analysis_source": "llm",
+      "llm_skipped": [],
+      "error": "",
+      "api_path": "/api/perf/db-delay?holdMs=300",
+      "times": {
+        "diagnose_sec": 9.17,
+        "build_run_analyze_sec": 98.81,
+        "total_sec": 107.98
+      }
+    }
+  ]
+}
