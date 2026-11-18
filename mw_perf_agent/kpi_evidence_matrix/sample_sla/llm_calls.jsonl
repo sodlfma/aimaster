@@ -1,0 +1,3 @@
+{"node": "llm_extract_config", "prompt": "extract_config", "prompt_version": "2.0", "model": "gpt-4.1", "approx_input_tokens": 3188, "latency_ms": 1761, "ok": true, "error": ""}
+{"node": "llm_interpret_diagnosis", "prompt": "interpret_diagnosis", "prompt_version": "2.0", "model": "gpt-4.1", "approx_input_tokens": 533, "latency_ms": 8352, "ok": true, "error": ""}
+{"node": "llm_analyze_run", "prompt": "analyze_run", "prompt_version": "2.0", "model": "gpt-4.1", "approx_input_tokens": 1056, "latency_ms": 10645, "ok": true, "error": ""}

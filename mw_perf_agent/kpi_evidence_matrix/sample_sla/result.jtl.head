@@ -1,0 +1,5 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1794901975620,673,sla,200,200,S1 (50% 목표) 1-1,text,true,,249,209,1,1,http://3.35.11.139:8080/api/perf/db-delay?holdMs=300,671,0,188
+1794901976296,477,sla,200,200,S1 (50% 목표) 1-1,text,true,,248,209,1,1,http://3.35.11.139:8080/api/perf/db-delay?holdMs=300,477,0,0
+1794901976774,477,sla,200,200,S1 (50% 목표) 1-1,text,true,,248,209,1,1,http://3.35.11.139:8080/api/perf/db-delay?holdMs=300,477,0,0
+1794901977252,478,sla,200,200,S1 (50% 목표) 1-1,text,true,,248,209,2,2,http://3.35.11.139:8080/api/perf/db-delay?holdMs=300,477,0,0

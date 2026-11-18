@@ -1,0 +1,13 @@
+
+sun.jvmstat.monitor.MonitorException: Could not attach to 82031
+	at jdk.internal.jvmstat/sun.jvmstat.perfdata.monitor.protocol.local.PerfDataBuffer.<init>(PerfDataBuffer.java:93)
+	at jdk.internal.jvmstat/sun.jvmstat.perfdata.monitor.protocol.local.LocalMonitoredVm.<init>(LocalMonitoredVm.java:68)
+	at jdk.internal.jvmstat/sun.jvmstat.perfdata.monitor.protocol.local.MonitoredHostProvider.getMonitoredVm(MonitoredHostProvider.java:77)
+	at jdk.jcmd/sun.tools.jstat.Jstat.logSamples(Jstat.java:107)
+	at jdk.jcmd/sun.tools.jstat.Jstat.main(Jstat.java:70)
+Caused by: java.io.IOException: Operation not permitted
+	at java.base/jdk.internal.perf.Perf.attach(Native Method)
+	at java.base/jdk.internal.perf.Perf.attachImpl(Perf.java:273)
+	at java.base/jdk.internal.perf.Perf.attach(Perf.java:203)
+	at jdk.internal.jvmstat/sun.jvmstat.perfdata.monitor.protocol.local.PerfDataBuffer.<init>(PerfDataBuffer.java:65)
+	... 4 more

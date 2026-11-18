@@ -1,0 +1,82 @@
+{
+  "run_id": "20261117_074021_9562bb",
+  "scenario": {
+    "name": "breakpoint-1",
+    "protocol": "http",
+    "host": "3.35.11.139",
+    "port": 8080,
+    "default_headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "requests": [
+      {
+        "label": "breakpoint",
+        "method": "GET",
+        "path": "/api/perf/db-delay?holdMs=300",
+        "headers": {},
+        "body": null,
+        "extract": [],
+        "assertions": [
+          {
+            "kind": "response_code",
+            "expected": "200"
+          }
+        ]
+      }
+    ],
+    "think_time_ms": 0
+  },
+  "load_plan": {
+    "steps": [
+      {
+        "name": "Step 1 (Normal)",
+        "target_concurrency": 20,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "정상 (베이스라인)"
+      },
+      {
+        "name": "Step 2 (DB Saturation)",
+        "target_concurrency": 27,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "DB Connection 대기, maxWait 초과 오류"
+      },
+      {
+        "name": "Step 3 (WAS Queueing)",
+        "target_concurrency": 62,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "응답 지연 급증, 큐잉"
+      },
+      {
+        "name": "Step 4 (Stress/Drop)",
+        "target_concurrency": 90,
+        "ramp_up_sec": 10,
+        "hold_sec": 15,
+        "expected_symptom": "HTTP 503 / Connection refused, 복구력 검증"
+      }
+    ],
+    "total_duration_sec": 100,
+    "scenario_type": "breakpoint",
+    "scenario_label": "계층별 임계치 돌파 테스트",
+    "purpose": "DB → WAS → Web 순으로 병목 지점 및 한계치(Breakpoint) 확인 [KPI scale×0.25, hold=15s]",
+    "n_target": null,
+    "verification_points": [
+      "각 계층의 임계치 도달 시 에러 발생 양상 및 시스템 한계점 규명"
+    ]
+  },
+  "thresholds": {
+    "t_db_lock": 100,
+    "t_queue": 200,
+    "t_drop": 300,
+    "web_cap": 400,
+    "formulas": {
+      "t_db_lock": "100 (dbcp.maxTotal) = 100",
+      "t_queue": "200 (tomcat.maxThreads) = 200",
+      "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+      "web_cap": "400 (Apache MaxRequestWorkers)"
+    }
+  }
+}

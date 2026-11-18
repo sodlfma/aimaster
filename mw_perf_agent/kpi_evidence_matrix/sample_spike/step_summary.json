@@ -1,0 +1,50 @@
+[
+  {
+    "step": "Base (평시)",
+    "target_concurrency": 6,
+    "expected_symptom": "평시 부하 유지, 정상 (베이스라인)",
+    "start_ms": 1794901664135,
+    "end_ms": 1794901689460,
+    "duration_s": 25.3,
+    "samples": 682,
+    "tps": 26.93,
+    "avg_ms": 183.5,
+    "p95_ms": 186.0,
+    "p99_ms": 359.2,
+    "err_rate": 0.0,
+    "http_503": 0,
+    "max_active": 6
+  },
+  {
+    "step": "Spike (급등)",
+    "target_concurrency": 97,
+    "expected_symptom": "HTTP 503 폭증 여부 (acceptCount 순간 초과)",
+    "start_ms": 1794901689273,
+    "end_ms": 1794901707185,
+    "duration_s": 17.9,
+    "samples": 5995,
+    "tps": 334.69,
+    "avg_ms": 260.8,
+    "p95_ms": 451.0,
+    "p99_ms": 605.0,
+    "err_rate": 0.0,
+    "http_503": 0,
+    "max_active": 97
+  },
+  {
+    "step": "Recovery (복귀)",
+    "target_concurrency": 98,
+    "expected_symptom": "부하 해소 후 스레드·커넥션 정상 반환",
+    "start_ms": 1794901706601,
+    "end_ms": 1794901732466,
+    "duration_s": 25.9,
+    "samples": 7784,
+    "tps": 300.95,
+    "avg_ms": 254.7,
+    "p95_ms": 442.0,
+    "p99_ms": 578.3,
+    "err_rate": 0.06,
+    "http_503": 0,
+    "max_active": 98
+  }
+]

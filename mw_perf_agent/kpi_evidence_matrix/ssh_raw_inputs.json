@@ -1,0 +1,14 @@
+{
+  "web_mon_cron.env": {
+    "chars": 135,
+    "head": "HOST=3.35.11.139\nAPACHE_HOME=/software/apache/servers/webnode1/conf/extra/httpd-mpm.conf\nTOMCAT_HOME=/software/tomcat/servers/wasnode1\n"
+  },
+  "httpd-mpm.conf": {
+    "chars": 4540,
+    "head": "#\n# Server-Pool Management (MPM specific)\n# \n\n#\n# PidFile: The file in which the server should record its process\n# identification number when it starts.\n#\n# Note that this is the default PidFile for "
+  },
+  "tomcat.env": {
+    "chars": 3900,
+    "head": "##############################################\n# instance    : wasnode1\n# description : instance environment\n# date        : 2018-05-23\n##############################################\n\n################"
+  }
+}

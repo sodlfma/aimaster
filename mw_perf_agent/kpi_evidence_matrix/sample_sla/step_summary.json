@@ -1,0 +1,50 @@
+[
+  {
+    "step": "S1 (50% 목표)",
+    "target_concurrency": 5,
+    "expected_symptom": "목표의 50% 워밍업, 정상 (베이스라인)",
+    "start_ms": 1794901975620,
+    "end_ms": 1794902001185,
+    "duration_s": 25.6,
+    "samples": 220,
+    "tps": 8.61,
+    "avg_ms": 482.1,
+    "p95_ms": 483.0,
+    "p99_ms": 655.0,
+    "err_rate": 0.0,
+    "http_503": 0,
+    "max_active": 5
+  },
+  {
+    "step": "S2 (목표 구간)",
+    "target_concurrency": 10,
+    "expected_symptom": "목표 동시접속자 구간. 평균 응답시간(TPS, Latency) 충족 여부",
+    "start_ms": 1794902000998,
+    "end_ms": 1794902026640,
+    "duration_s": 25.6,
+    "samples": 430,
+    "tps": 16.77,
+    "avg_ms": 482.8,
+    "p95_ms": 483.0,
+    "p99_ms": 655.7,
+    "err_rate": 0.0,
+    "http_503": 0,
+    "max_active": 10
+  },
+  {
+    "step": "S3 (여유율)",
+    "target_concurrency": 12,
+    "expected_symptom": "목표 대비 20% 여유율 검증",
+    "start_ms": 1794902026458,
+    "end_ms": 1794902052087,
+    "duration_s": 25.6,
+    "samples": 514,
+    "tps": 20.06,
+    "avg_ms": 482.8,
+    "p95_ms": 483.0,
+    "p99_ms": 658.6,
+    "err_rate": 0.0,
+    "http_503": 0,
+    "max_active": 12
+  }
+]

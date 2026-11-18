@@ -1,0 +1,5 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1794901664135,374,spike,200,200,Base (평시) 1-1,text,true,,301,224,1,1,http://3.35.11.139:8080/api/perf/alloc-memory?allocMb=20&leak=false,371,0,187
+1794901664513,185,spike,200,200,Base (평시) 1-1,text,true,,300,224,1,1,http://3.35.11.139:8080/api/perf/alloc-memory?allocMb=20&leak=false,185,0,0
+1794901664699,193,spike,200,200,Base (평시) 1-1,text,true,,300,224,1,1,http://3.35.11.139:8080/api/perf/alloc-memory?allocMb=20&leak=false,193,0,0
+1794901664893,183,spike,200,200,Base (평시) 1-1,text,true,,300,224,1,1,http://3.35.11.139:8080/api/perf/alloc-memory?allocMb=20&leak=false,183,0,0
