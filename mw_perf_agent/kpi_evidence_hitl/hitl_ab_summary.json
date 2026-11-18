@@ -1,0 +1,380 @@
+{
+  "measured_at": "2026-11-18T02:10:04",
+  "host": "3.35.11.139",
+  "fixture": "/agent/repos/aimaster/mw_perf_agent/kpi_evidence_guardrail/fixture_full",
+  "n_repeats": 3,
+  "llm_route": "Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview",
+  "truth_thresholds": {
+    "t_db_lock": 50,
+    "t_queue": 200,
+    "t_drop": 300,
+    "web_cap": 400
+  },
+  "truth_defaults": {
+    "tomcat_max_threads": 200,
+    "tomcat_accept_count": 100,
+    "dbcp_max_total": 50
+  },
+  "by_arm": {
+    "auto": {
+      "n": 3,
+      "avg_diagnose_sec": 10.11,
+      "avg_fabrications_detected": 2.0,
+      "avg_remaining_fabrications": 2.0,
+      "avg_field_errors": 0.33,
+      "avg_threshold_l1": 16.67,
+      "avg_plan_l1": 31.67,
+      "scenario_host_ok_rate": "0/3",
+      "scenario_path_ok_rate": "0/3",
+      "validation_ok_rate": "3/3",
+      "errors": []
+    },
+    "hitl": {
+      "n": 3,
+      "avg_diagnose_sec": 9.39,
+      "avg_fabrications_detected": 2.0,
+      "avg_remaining_fabrications": 0.0,
+      "avg_field_errors": 0.0,
+      "avg_threshold_l1": 0.0,
+      "avg_plan_l1": 0.0,
+      "scenario_host_ok_rate": "3/3",
+      "scenario_path_ok_rate": "3/3",
+      "validation_ok_rate": "3/3",
+      "errors": []
+    },
+    "delta_hitl_minus_auto": {
+      "remaining_fabrications": -2.0,
+      "field_errors": -0.33,
+      "threshold_l1": -16.67,
+      "plan_l1": -31.67
+    }
+  },
+  "records": [
+    {
+      "arm": "auto",
+      "attempt": 1,
+      "run_id": "20261118_020843_176bfb",
+      "diagnose_sec": 9.47,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "field_errors": {},
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 0.0,
+      "plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 0.0,
+      "scenario_host": "prod-internal.example.invalid",
+      "scenario_path": "/api/v1/login",
+      "scenario_host_ok": false,
+      "scenario_path_ok": false,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (7389ms, ~560 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://prod-internal.example.invalid:80 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020843_176bfb/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    },
+    {
+      "arm": "hitl",
+      "attempt": 1,
+      "run_id": "20261118_020852_ef6bb9",
+      "diagnose_sec": 9.05,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [],
+      "field_errors": {},
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 0.0,
+      "plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 0.0,
+      "scenario_host": "3.35.11.139",
+      "scenario_path": "/api/perf/db-delay?holdMs=300",
+      "scenario_host_ok": true,
+      "scenario_path_ok": true,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (7265ms, ~592 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://3.35.11.139:8080 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020852_ef6bb9/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    },
+    {
+      "arm": "auto",
+      "attempt": 2,
+      "run_id": "20261118_020908_59163b",
+      "diagnose_sec": 9.8,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "field_errors": {
+        "dbcp_max_total": {
+          "got": 100,
+          "expected": 50
+        }
+      },
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 50.0,
+      "plan_concurrency": [
+        80,
+        110,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 95.0,
+      "scenario_host": "prod-internal.example.invalid",
+      "scenario_path": "/api/v1/login",
+      "scenario_host_ok": false,
+      "scenario_path_ok": false,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (8203ms, ~562 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://prod-internal.example.invalid:80 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020908_59163b/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    },
+    {
+      "arm": "hitl",
+      "attempt": 2,
+      "run_id": "20261118_020918_cdf869",
+      "diagnose_sec": 10.68,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [],
+      "field_errors": {},
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 0.0,
+      "plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 0.0,
+      "scenario_host": "3.35.11.139",
+      "scenario_path": "/api/perf/db-delay?holdMs=300",
+      "scenario_host_ok": true,
+      "scenario_path_ok": true,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (7615ms, ~592 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://3.35.11.139:8080 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020918_cdf869/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    },
+    {
+      "arm": "auto",
+      "attempt": 3,
+      "run_id": "20261118_020937_69173b",
+      "diagnose_sec": 11.06,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "field_errors": {},
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 0.0,
+      "plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 0.0,
+      "scenario_host": "prod-internal.example.invalid",
+      "scenario_path": "/api/v1/login",
+      "scenario_host_ok": false,
+      "scenario_path_ok": false,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (9295ms, ~560 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://prod-internal.example.invalid:80 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020937_69173b/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    },
+    {
+      "arm": "hitl",
+      "attempt": 3,
+      "run_id": "20261118_020948_f8d8f0",
+      "diagnose_sec": 8.44,
+      "fabricated_fields": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "remaining_fabrications": [],
+      "field_errors": {},
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "truth_thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400
+      },
+      "threshold_l1": 0.0,
+      "plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "truth_plan_concurrency": [
+        40,
+        55,
+        250,
+        360
+      ],
+      "plan_l1": 0.0,
+      "scenario_host": "3.35.11.139",
+      "scenario_path": "/api/perf/db-delay?holdMs=300",
+      "scenario_host_ok": true,
+      "scenario_path_ok": true,
+      "validation_ok": true,
+      "node_log_tail": [
+        "llm_interpret_diagnosis: ok (7610ms, ~592 tok, attempt 1)",
+        "gate_review_plan: resumed",
+        "scenario_from_url: http://3.35.11.139:8080 1 req",
+        "gate_review_scenario: resumed",
+        "render_bundle: /agent/repos/aimaster/mw_perf_agent/kpi_evidence_hitl/runs/20261118_020948_f8d8f0/plan.jmx",
+        "validate_jmx: ok=True ['well_formed', 'structure', 'dry_run']"
+      ],
+      "error": ""
+    }
+  ]
+}
