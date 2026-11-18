@@ -1,0 +1,30 @@
+{
+  "probe_unique_discard": {
+    "warnings": [
+      "LLM이 제안한 tomcat_accept_count=777 은(는) 원문에서 근거를 찾을 수 없어 폐기했습니다.",
+      "LLM이 제안한 dbcp_max_total=9991 은(는) 원문에서 근거를 찾을 수 없어 폐기했습니다."
+    ],
+    "final": {
+      "tomcat_accept_count": null,
+      "dbcp_max_total": null,
+      "tomcat_max_threads": 200
+    },
+    "discarded_expected": [
+      "tomcat_accept_count",
+      "dbcp_max_total"
+    ],
+    "guardrail_ok": true
+  },
+  "probe_common_number_false_evidence": {
+    "warnings": [],
+    "final": {
+      "tomcat_accept_count": 100,
+      "dbcp_max_total": 100
+    },
+    "fabricated_line_in_raw": {
+      "acceptCount=100": false,
+      "maxTotal=100": false
+    },
+    "note": "value-presence guardrail only checks str(val) in raw_text; fabricated evidence lines can pass if digits exist elsewhere"
+  }
+}

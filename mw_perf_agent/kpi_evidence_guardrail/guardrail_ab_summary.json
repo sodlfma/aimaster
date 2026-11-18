@@ -1,0 +1,1897 @@
+{
+  "measured_at": "2026-11-18T01:46:52",
+  "host": "3.35.11.139",
+  "confidence_threshold": 0.8,
+  "required_fields": [
+    "tomcat_max_threads",
+    "tomcat_accept_count",
+    "dbcp_max_total"
+  ],
+  "n_repeats": 3,
+  "llm_route": "Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview",
+  "by_variant": {
+    "full": {
+      "n": 3,
+      "llm_extract_route_rate": "3/3",
+      "avg_diagnose_sec": 10.12,
+      "avg_merged_from_llm": 2.0,
+      "avg_discarded_fields": 0.0,
+      "field_regex_fills": 15,
+      "field_llm_accepts": 6,
+      "field_llm_discards": 0,
+      "field_defaults": 0,
+      "code_vs_llm_field_ratio": {
+        "regex": 15,
+        "llm_accepted": 6,
+        "default": 0,
+        "llm_discarded_proposals": 0
+      },
+      "guardrail_discard_examples": [],
+      "final_sources": [
+        "regex+llm",
+        "regex+llm",
+        "regex+llm"
+      ],
+      "thresholds_stable": false
+    },
+    "omitted": {
+      "n": 3,
+      "llm_extract_route_rate": "3/3",
+      "avg_diagnose_sec": 11.61,
+      "avg_merged_from_llm": 1.0,
+      "avg_discarded_fields": 0.0,
+      "field_regex_fills": 6,
+      "field_llm_accepts": 3,
+      "field_llm_discards": 0,
+      "field_defaults": 9,
+      "code_vs_llm_field_ratio": {
+        "regex": 6,
+        "llm_accepted": 3,
+        "default": 9,
+        "llm_discarded_proposals": 0
+      },
+      "guardrail_discard_examples": [],
+      "final_sources": [
+        "regex+llm",
+        "regex+llm",
+        "regex+llm"
+      ],
+      "thresholds_stable": true
+    },
+    "hallucination": {
+      "n": 3,
+      "llm_extract_route_rate": "3/3",
+      "avg_diagnose_sec": 12.28,
+      "avg_merged_from_llm": 1.0,
+      "avg_discarded_fields": 0.0,
+      "field_regex_fills": 3,
+      "field_llm_accepts": 0,
+      "field_llm_discards": 0,
+      "field_defaults": 9,
+      "code_vs_llm_field_ratio": {
+        "regex": 3,
+        "llm_accepted": 0,
+        "default": 9,
+        "llm_discarded_proposals": 0
+      },
+      "guardrail_discard_examples": [],
+      "final_sources": [
+        "regex+llm",
+        "regex+llm",
+        "regex+llm"
+      ],
+      "thresholds_stable": true
+    },
+    "masked_host": {
+      "n": 3,
+      "llm_extract_route_rate": "3/3",
+      "avg_diagnose_sec": 10.23,
+      "avg_merged_from_llm": 1.33,
+      "avg_discarded_fields": 0.0,
+      "field_regex_fills": 15,
+      "field_llm_accepts": 4,
+      "field_llm_discards": 0,
+      "field_defaults": 2,
+      "code_vs_llm_field_ratio": {
+        "regex": 15,
+        "llm_accepted": 4,
+        "default": 2,
+        "llm_discarded_proposals": 0
+      },
+      "guardrail_discard_examples": [],
+      "final_sources": [
+        "regex+llm",
+        "regex+llm",
+        "regex+llm"
+      ],
+      "thresholds_stable": true
+    }
+  },
+  "records": [
+    {
+      "variant": "full",
+      "attempt": 1,
+      "run_id": "20261118_014439_888e3c",
+      "diagnose_sec": 11.03,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 2,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [],
+      "final_source": "regex+llm",
+      "final_confidence": 1.0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=100\""
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\""
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 2180,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 8812,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014439_888e3c",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (2180ms, ~3188 tok, attempt 1)",
+        "merge_validate: +2 from llm, confidence=1.0",
+        "compute_thresholds: 100/200/300",
+        "build_load_plan: breakpoint [80, 110, 250, 360]",
+        "llm_interpret_diagnosis: ok (8812ms, ~562 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "full",
+      "attempt": 2,
+      "run_id": "20261118_014450_84da02",
+      "diagnose_sec": 9.15,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 2,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [],
+      "final_source": "regex+llm",
+      "final_confidence": 1.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=50\""
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\""
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1634,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 7495,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014450_84da02",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1634ms, ~3188 tok, attempt 1)",
+        "merge_validate: +2 from llm, confidence=1.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (7495ms, ~560 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "full",
+      "attempt": 3,
+      "run_id": "20261118_014459_54ba9a",
+      "diagnose_sec": 10.17,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 2,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [],
+      "final_source": "regex+llm",
+      "final_confidence": 1.0,
+      "thresholds": {
+        "t_db_lock": 100,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "100 (dbcp.maxTotal) = 100",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=100\""
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\""
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1661,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 8483,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014459_54ba9a",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1661ms, ~3188 tok, attempt 1)",
+        "merge_validate: +2 from llm, confidence=1.0",
+        "compute_thresholds: 100/200/300",
+        "build_load_plan: breakpoint [80, 110, 250, 360]",
+        "llm_interpret_diagnosis: ok (8483ms, ~562 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "omitted",
+      "attempt": 1,
+      "run_id": "20261118_014509_45e2d4",
+      "diagnose_sec": 11.12,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 250,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "250 (Apache MaxRequestWorkers)",
+          "web_cap_note": "Apache MaxRequestWorkers(250) < T_drop(300) → Web 계층이 먼저 병목"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 250,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# [OMITTED_FOR_KPI]     MaxRequestWorkers      250"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 2163,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 8936,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014509_45e2d4",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (2163ms, ~3247 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (8936ms, ~646 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "omitted",
+      "attempt": 2,
+      "run_id": "20261118_014520_bd6cf4",
+      "diagnose_sec": 12.59,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 250,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "250 (Apache MaxRequestWorkers)",
+          "web_cap_note": "Apache MaxRequestWorkers(250) < T_drop(300) → Web 계층이 먼저 병목"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 250,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# [OMITTED_FOR_KPI]     MaxRequestWorkers      250"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1731,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 10838,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014520_bd6cf4",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1731ms, ~3247 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (10838ms, ~646 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "omitted",
+      "attempt": 3,
+      "run_id": "20261118_014533_6b21f6",
+      "diagnose_sec": 11.13,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 250,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "250 (Apache MaxRequestWorkers)",
+          "web_cap_note": "Apache MaxRequestWorkers(250) < T_drop(300) → Web 계층이 먼저 병목"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 250,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# [OMITTED_FOR_KPI]     MaxRequestWorkers      250"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1700,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 9402,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014533_6b21f6",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1700ms, ~3247 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (9402ms, ~646 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "hallucination",
+      "attempt": 1,
+      "run_id": "20261118_014544_b2bd7f",
+      "diagnose_sec": 11.91,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": null,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1734,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 10154,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014544_b2bd7f",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1734ms, ~3358 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (10154ms, ~589 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "hallucination",
+      "attempt": 2,
+      "run_id": "20261118_014556_7278aa",
+      "diagnose_sec": 11.56,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": null,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1976,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 9565,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014556_7278aa",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1976ms, ~3358 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (9565ms, ~589 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "hallucination",
+      "attempt": 3,
+      "run_id": "20261118_014608_ae6f1a",
+      "diagnose_sec": 13.36,
+      "regex_confidence": 0.0,
+      "regex_missing": [
+        "tomcat_max_threads",
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+        "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": null,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "mpm_module",
+          "final_value": null,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": ""
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 100 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 200 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 2121,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 11217,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014608_ae6f1a",
+        "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (2121ms, ~3358 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (11217ms, ~589 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "masked_host",
+      "attempt": 1,
+      "run_id": "20261118_014621_31d896",
+      "diagnose_sec": 10.6,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 2,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [],
+      "final_source": "regex+llm",
+      "final_confidence": 1.0,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# DBCP max total\nJAVA_OPTS=\"$JAVA_OPTS -Ddbcp.maxTotal=50\""
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# Accept count\nJAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.acceptCount=100\""
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1727,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 8846,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014621_31d896",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1727ms, ~3189 tok, attempt 1)",
+        "merge_validate: +2 from llm, confidence=1.0",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (8846ms, ~560 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "masked_host",
+      "attempt": 2,
+      "run_id": "20261118_014632_466894",
+      "diagnose_sec": 10.72,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.67,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# AcceptCount: queue length for incoming requests when all threads are busy\n# Default: 100"
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1762,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 8941,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014632_466894",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1762ms, ~3189 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.67",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (8941ms, ~575 tok, attempt 1)"
+      ],
+      "error": ""
+    },
+    {
+      "variant": "masked_host",
+      "attempt": 3,
+      "run_id": "20261118_014642_5e88e9",
+      "diagnose_sec": 9.37,
+      "regex_confidence": 0.33,
+      "regex_missing": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "routed_to_llm_extract": true,
+      "llm_extract_called": true,
+      "llm_interpret_called": true,
+      "merged_from_llm": 1,
+      "discarded_fields": [],
+      "discard_warnings": [],
+      "default_warnings": [
+        "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+      ],
+      "final_source": "regex+llm",
+      "final_confidence": 0.67,
+      "thresholds": {
+        "t_db_lock": 50,
+        "t_queue": 200,
+        "t_drop": 300,
+        "web_cap": 400,
+        "formulas": {
+          "t_db_lock": "50 (dbcp.maxTotal) = 50",
+          "t_queue": "200 (tomcat.maxThreads) = 200",
+          "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300",
+          "web_cap": "400 (Apache MaxRequestWorkers)"
+        }
+      },
+      "fields": [
+        {
+          "field": "dbcp_max_total",
+          "final_value": 50,
+          "regex_had": false,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": true,
+          "evidence": "(기본값 50 사용 — 원문에서 추출 실패)"
+        },
+        {
+          "field": "jvm_xmx_mb",
+          "final_value": 1024,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Xms1024m -Xmx1024m -XX:NewSize=384m -XX:MaxNewSize=384m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m\""
+        },
+        {
+          "field": "max_request_workers",
+          "final_value": 400,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "MaxRequestWorkers      400"
+        },
+        {
+          "field": "mpm_module",
+          "final_value": "event",
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "<IfModule mpm_event_module>"
+        },
+        {
+          "field": "tomcat_accept_count",
+          "final_value": 100,
+          "regex_had": false,
+          "llm_proposed": true,
+          "llm_accepted": true,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "# AcceptCount: the maximum queue length for incoming connection requests when all possible request processing threads are in use.\n# Default is 100.\n# AcceptCount=\"100\""
+        },
+        {
+          "field": "tomcat_max_threads",
+          "final_value": 200,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.connector.maxThreads=200\""
+        },
+        {
+          "field": "tomcat_port",
+          "final_value": 45564,
+          "regex_had": true,
+          "llm_proposed": false,
+          "llm_accepted": false,
+          "llm_discarded": false,
+          "used_default": false,
+          "evidence": "JAVA_OPTS=\"$JAVA_OPTS -Dtomcat.cluster.member.port=45564\""
+        }
+      ],
+      "llm_calls": [
+        {
+          "node": "llm_extract_config",
+          "ok": true,
+          "latency_ms": 1988,
+          "error": ""
+        },
+        {
+          "node": "llm_interpret_diagnosis",
+          "ok": true,
+          "latency_ms": 7363,
+          "error": ""
+        }
+      ],
+      "node_log": [
+        "ingest_inputs: run_id=20261118_014642_5e88e9",
+        "parse_regex: confidence=0.33, missing=['tomcat_accept_count', 'dbcp_max_total']",
+        "llm_extract_config: ok (1988ms, ~3189 tok, attempt 1)",
+        "merge_validate: +1 from llm, confidence=0.67",
+        "compute_thresholds: 50/200/300",
+        "build_load_plan: breakpoint [40, 55, 250, 360]",
+        "llm_interpret_diagnosis: ok (7363ms, ~575 tok, attempt 1)"
+      ],
+      "error": ""
+    }
+  ],
+  "merge_validate_probes": {
+    "probe_unique_discard": {
+      "warnings": [
+        "LLM이 제안한 tomcat_accept_count=777 은(는) 원문에서 근거를 찾을 수 없어 폐기했습니다.",
+        "LLM이 제안한 dbcp_max_total=9991 은(는) 원문에서 근거를 찾을 수 없어 폐기했습니다."
+      ],
+      "final": {
+        "tomcat_accept_count": null,
+        "dbcp_max_total": null,
+        "tomcat_max_threads": 200
+      },
+      "discarded_expected": [
+        "tomcat_accept_count",
+        "dbcp_max_total"
+      ],
+      "guardrail_ok": true
+    },
+    "probe_common_number_false_evidence": {
+      "warnings": [],
+      "final": {
+        "tomcat_accept_count": 100,
+        "dbcp_max_total": 100
+      },
+      "fabricated_line_in_raw": {
+        "acceptCount=100": false,
+        "maxTotal=100": false
+      },
+      "note": "value-presence guardrail only checks str(val) in raw_text; fabricated evidence lines can pass if digits exist elsewhere"
+    }
+  },
+  "hard_hallucination_live": {
+    "n": 3,
+    "llm_extract_route_rate": "3/3",
+    "discard_warning_count_avg": 0.0,
+    "required_fields_outcome": "all filled by deterministic defaults (200/100/50), not LLM",
+    "llm_merged_non_required": "threads_per_child=1000 from NetWare MaxThreads line (in raw text)",
+    "records": [
+      {
+        "attempt": 1,
+        "run_id": "20261118_014815_61a0fb",
+        "sec": 13.02,
+        "visited_llm_extract": true,
+        "discard_warnings": [],
+        "all_warnings": [
+          "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+          "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+          "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+          "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+        ],
+        "final": {
+          "tomcat_max_threads": 200,
+          "tomcat_accept_count": 100,
+          "dbcp_max_total": 50,
+          "source": "regex+llm",
+          "confidence": 0.0
+        },
+        "thresholds": {
+          "t_db_lock": 50,
+          "t_queue": 200,
+          "t_drop": 300,
+          "web_cap": null,
+          "formulas": {
+            "t_db_lock": "50 (dbcp.maxTotal) = 50",
+            "t_queue": "200 (tomcat.maxThreads) = 200",
+            "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+          }
+        },
+        "llm_calls": [
+          {
+            "node": "llm_extract_config",
+            "ok": true
+          },
+          {
+            "node": "llm_interpret_diagnosis",
+            "ok": true
+          }
+        ],
+        "node_log": [
+          "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+          "llm_extract_config: ok (2221ms, ~2887 tok, attempt 1)",
+          "merge_validate: +1 from llm, confidence=0.0"
+        ]
+      },
+      {
+        "attempt": 2,
+        "run_id": "20261118_014828_87c5b9",
+        "sec": 11.03,
+        "visited_llm_extract": true,
+        "discard_warnings": [],
+        "all_warnings": [
+          "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+          "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+          "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+          "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+        ],
+        "final": {
+          "tomcat_max_threads": 200,
+          "tomcat_accept_count": 100,
+          "dbcp_max_total": 50,
+          "source": "regex+llm",
+          "confidence": 0.0
+        },
+        "thresholds": {
+          "t_db_lock": 50,
+          "t_queue": 200,
+          "t_drop": 300,
+          "web_cap": null,
+          "formulas": {
+            "t_db_lock": "50 (dbcp.maxTotal) = 50",
+            "t_queue": "200 (tomcat.maxThreads) = 200",
+            "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+          }
+        },
+        "llm_calls": [
+          {
+            "node": "llm_extract_config",
+            "ok": true
+          },
+          {
+            "node": "llm_interpret_diagnosis",
+            "ok": true
+          }
+        ],
+        "node_log": [
+          "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+          "llm_extract_config: ok (1656ms, ~2887 tok, attempt 1)",
+          "merge_validate: +1 from llm, confidence=0.0"
+        ]
+      },
+      {
+        "attempt": 3,
+        "run_id": "20261118_014839_55880a",
+        "sec": 11.93,
+        "visited_llm_extract": true,
+        "discard_warnings": [],
+        "all_warnings": [
+          "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+          "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+          "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+          "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+        ],
+        "final": {
+          "tomcat_max_threads": 200,
+          "tomcat_accept_count": 100,
+          "dbcp_max_total": 50,
+          "source": "regex+llm",
+          "confidence": 0.0
+        },
+        "thresholds": {
+          "t_db_lock": 50,
+          "t_queue": 200,
+          "t_drop": 300,
+          "web_cap": null,
+          "formulas": {
+            "t_db_lock": "50 (dbcp.maxTotal) = 50",
+            "t_queue": "200 (tomcat.maxThreads) = 200",
+            "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+          }
+        },
+        "llm_calls": [
+          {
+            "node": "llm_extract_config",
+            "ok": true
+          },
+          {
+            "node": "llm_interpret_diagnosis",
+            "ok": true
+          }
+        ],
+        "node_log": [
+          "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+          "llm_extract_config: ok (1653ms, ~2887 tok, attempt 1)",
+          "merge_validate: +1 from llm, confidence=0.0"
+        ]
+      }
+    ]
+  },
+  "required_field_attribution": {
+    "full": {
+      "required_field_slots": 9,
+      "regex": 3,
+      "llm_accepted": 6,
+      "default": 0,
+      "llm_discarded": 0,
+      "code_share_pct": 33.3,
+      "llm_share_pct": 66.7
+    },
+    "omitted": {
+      "required_field_slots": 9,
+      "regex": 0,
+      "llm_accepted": 0,
+      "default": 9,
+      "llm_discarded": 0,
+      "code_share_pct": 100.0,
+      "llm_share_pct": 0.0
+    },
+    "hallucination": {
+      "required_field_slots": 9,
+      "regex": 0,
+      "llm_accepted": 0,
+      "default": 9,
+      "llm_discarded": 0,
+      "code_share_pct": 100.0,
+      "llm_share_pct": 0.0
+    },
+    "masked_host": {
+      "required_field_slots": 9,
+      "regex": 3,
+      "llm_accepted": 4,
+      "default": 2,
+      "llm_discarded": 0,
+      "code_share_pct": 55.6,
+      "llm_share_pct": 44.4
+    }
+  }
+}

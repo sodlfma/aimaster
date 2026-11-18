@@ -1,0 +1,140 @@
+[
+  {
+    "attempt": 1,
+    "run_id": "20261118_014815_61a0fb",
+    "sec": 13.02,
+    "visited_llm_extract": true,
+    "discard_warnings": [],
+    "all_warnings": [
+      "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+      "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+      "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+      "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+    ],
+    "final": {
+      "tomcat_max_threads": 200,
+      "tomcat_accept_count": 100,
+      "dbcp_max_total": 50,
+      "source": "regex+llm",
+      "confidence": 0.0
+    },
+    "thresholds": {
+      "t_db_lock": 50,
+      "t_queue": 200,
+      "t_drop": 300,
+      "web_cap": null,
+      "formulas": {
+        "t_db_lock": "50 (dbcp.maxTotal) = 50",
+        "t_queue": "200 (tomcat.maxThreads) = 200",
+        "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+      }
+    },
+    "llm_calls": [
+      {
+        "node": "llm_extract_config",
+        "ok": true
+      },
+      {
+        "node": "llm_interpret_diagnosis",
+        "ok": true
+      }
+    ],
+    "node_log": [
+      "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+      "llm_extract_config: ok (2221ms, ~2887 tok, attempt 1)",
+      "merge_validate: +1 from llm, confidence=0.0"
+    ]
+  },
+  {
+    "attempt": 2,
+    "run_id": "20261118_014828_87c5b9",
+    "sec": 11.03,
+    "visited_llm_extract": true,
+    "discard_warnings": [],
+    "all_warnings": [
+      "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+      "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+      "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+      "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+    ],
+    "final": {
+      "tomcat_max_threads": 200,
+      "tomcat_accept_count": 100,
+      "dbcp_max_total": 50,
+      "source": "regex+llm",
+      "confidence": 0.0
+    },
+    "thresholds": {
+      "t_db_lock": 50,
+      "t_queue": 200,
+      "t_drop": 300,
+      "web_cap": null,
+      "formulas": {
+        "t_db_lock": "50 (dbcp.maxTotal) = 50",
+        "t_queue": "200 (tomcat.maxThreads) = 200",
+        "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+      }
+    },
+    "llm_calls": [
+      {
+        "node": "llm_extract_config",
+        "ok": true
+      },
+      {
+        "node": "llm_interpret_diagnosis",
+        "ok": true
+      }
+    ],
+    "node_log": [
+      "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+      "llm_extract_config: ok (1656ms, ~2887 tok, attempt 1)",
+      "merge_validate: +1 from llm, confidence=0.0"
+    ]
+  },
+  {
+    "attempt": 3,
+    "run_id": "20261118_014839_55880a",
+    "sec": 11.93,
+    "visited_llm_extract": true,
+    "discard_warnings": [],
+    "all_warnings": [
+      "'tomcat_port' 값이 여러 개 발견되어 첫 번째 값을 사용했습니다.",
+      "tomcat_max_threads 값을 찾지 못해 기본값 200을(를) 사용했습니다.",
+      "tomcat_accept_count 값을 찾지 못해 기본값 100을(를) 사용했습니다.",
+      "dbcp_max_total 값을 찾지 못해 기본값 50을(를) 사용했습니다."
+    ],
+    "final": {
+      "tomcat_max_threads": 200,
+      "tomcat_accept_count": 100,
+      "dbcp_max_total": 50,
+      "source": "regex+llm",
+      "confidence": 0.0
+    },
+    "thresholds": {
+      "t_db_lock": 50,
+      "t_queue": 200,
+      "t_drop": 300,
+      "web_cap": null,
+      "formulas": {
+        "t_db_lock": "50 (dbcp.maxTotal) = 50",
+        "t_queue": "200 (tomcat.maxThreads) = 200",
+        "t_drop": "200 (maxThreads) + 100 (acceptCount) = 300"
+      }
+    },
+    "llm_calls": [
+      {
+        "node": "llm_extract_config",
+        "ok": true
+      },
+      {
+        "node": "llm_interpret_diagnosis",
+        "ok": true
+      }
+    ],
+    "node_log": [
+      "parse_regex: confidence=0.0, missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total']",
+      "llm_extract_config: ok (1653ms, ~2887 tok, attempt 1)",
+      "merge_validate: +1 from llm, confidence=0.0"
+    ]
+  }
+]

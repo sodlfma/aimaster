@@ -1,0 +1,117 @@
+LLM True Azure OpenAI · gpt-4.1 · https://skax.ai-talentlab.com · api-version 2024-12-01-preview
+SSH fetch…
+fixture full: regex_conf=0.33 missing=['tomcat_accept_count', 'dbcp_max_total'] route_llm=True
+fixture omitted: regex_conf=0.0 missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total'] route_llm=True
+fixture hallucination: regex_conf=0.0 missing=['tomcat_max_threads', 'tomcat_accept_count', 'dbcp_max_total'] route_llm=True
+fixture masked_host: regex_conf=0.33 missing=['tomcat_accept_count', 'dbcp_max_total'] route_llm=True
+[full #1] run=20261118_014439_888e3c llm_extract=True merged=2 discarded=[] source=regex+llm conf=1.0 11.03s
+[full #2] run=20261118_014450_84da02 llm_extract=True merged=2 discarded=[] source=regex+llm conf=1.0 9.15s
+[full #3] run=20261118_014459_54ba9a llm_extract=True merged=2 discarded=[] source=regex+llm conf=1.0 10.17s
+[omitted #1] run=20261118_014509_45e2d4 llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 11.12s
+[omitted #2] run=20261118_014520_bd6cf4 llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 12.59s
+[omitted #3] run=20261118_014533_6b21f6 llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 11.13s
+[hallucination #1] run=20261118_014544_b2bd7f llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 11.91s
+[hallucination #2] run=20261118_014556_7278aa llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 11.56s
+[hallucination #3] run=20261118_014608_ae6f1a llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.0 13.36s
+[masked_host #1] run=20261118_014621_31d896 llm_extract=True merged=2 discarded=[] source=regex+llm conf=1.0 10.6s
+[masked_host #2] run=20261118_014632_466894 llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.67 10.72s
+[masked_host #3] run=20261118_014642_5e88e9 llm_extract=True merged=1 discarded=[] source=regex+llm conf=0.67 9.37s
+{
+  "full": {
+    "n": 3,
+    "llm_extract_route_rate": "3/3",
+    "avg_diagnose_sec": 10.12,
+    "avg_merged_from_llm": 2.0,
+    "avg_discarded_fields": 0.0,
+    "field_regex_fills": 15,
+    "field_llm_accepts": 6,
+    "field_llm_discards": 0,
+    "field_defaults": 0,
+    "code_vs_llm_field_ratio": {
+      "regex": 15,
+      "llm_accepted": 6,
+      "default": 0,
+      "llm_discarded_proposals": 0
+    },
+    "guardrail_discard_examples": [],
+    "final_sources": [
+      "regex+llm",
+      "regex+llm",
+      "regex+llm"
+    ],
+    "thresholds_stable": false
+  },
+  "omitted": {
+    "n": 3,
+    "llm_extract_route_rate": "3/3",
+    "avg_diagnose_sec": 11.61,
+    "avg_merged_from_llm": 1.0,
+    "avg_discarded_fields": 0.0,
+    "field_regex_fills": 6,
+    "field_llm_accepts": 3,
+    "field_llm_discards": 0,
+    "field_defaults": 9,
+    "code_vs_llm_field_ratio": {
+      "regex": 6,
+      "llm_accepted": 3,
+      "default": 9,
+      "llm_discarded_proposals": 0
+    },
+    "guardrail_discard_examples": [],
+    "final_sources": [
+      "regex+llm",
+      "regex+llm",
+      "regex+llm"
+    ],
+    "thresholds_stable": true
+  },
+  "hallucination": {
+    "n": 3,
+    "llm_extract_route_rate": "3/3",
+    "avg_diagnose_sec": 12.28,
+    "avg_merged_from_llm": 1.0,
+    "avg_discarded_fields": 0.0,
+    "field_regex_fills": 3,
+    "field_llm_accepts": 0,
+    "field_llm_discards": 0,
+    "field_defaults": 9,
+    "code_vs_llm_field_ratio": {
+      "regex": 3,
+      "llm_accepted": 0,
+      "default": 9,
+      "llm_discarded_proposals": 0
+    },
+    "guardrail_discard_examples": [],
+    "final_sources": [
+      "regex+llm",
+      "regex+llm",
+      "regex+llm"
+    ],
+    "thresholds_stable": true
+  },
+  "masked_host": {
+    "n": 3,
+    "llm_extract_route_rate": "3/3",
+    "avg_diagnose_sec": 10.23,
+    "avg_merged_from_llm": 1.33,
+    "avg_discarded_fields": 0.0,
+    "field_regex_fills": 15,
+    "field_llm_accepts": 4,
+    "field_llm_discards": 0,
+    "field_defaults": 2,
+    "code_vs_llm_field_ratio": {
+      "regex": 15,
+      "llm_accepted": 4,
+      "default": 2,
+      "llm_discarded_proposals": 0
+    },
+    "guardrail_discard_examples": [],
+    "final_sources": [
+      "regex+llm",
+      "regex+llm",
+      "regex+llm"
+    ],
+    "thresholds_stable": true
+  }
+}
+wrote /agent/repos/aimaster/mw_perf_agent/kpi_evidence_guardrail/guardrail_ab_summary.json

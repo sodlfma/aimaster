@@ -1,0 +1,18 @@
+{
+  "confidence": 0.0,
+  "missing": [
+    "tomcat_max_threads",
+    "tomcat_accept_count",
+    "dbcp_max_total"
+  ],
+  "values": {
+    "tomcat_max_threads": null,
+    "tomcat_accept_count": null,
+    "dbcp_max_total": null,
+    "max_request_workers": null,
+    "jvm_xmx_mb": null,
+    "tomcat_port": 45564,
+    "mpm_module": null
+  },
+  "would_route_llm": true
+}
